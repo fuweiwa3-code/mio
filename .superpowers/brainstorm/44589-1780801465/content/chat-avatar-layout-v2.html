@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mio Chat Avatar Layout</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #302b36;
+      background: #f5f0f2;
+      font-family: Inter, "PingFang SC", sans-serif;
+    }
+    .page { max-width: 1380px; margin: 0 auto; padding: 30px; }
+    h1 { margin: 0 0 8px; font: 600 30px/1.2 Georgia, serif; }
+    .intro { margin: 0 0 24px; color: #746b78; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .option {
+      overflow: hidden;
+      min-width: 0;
+      border: 1px solid #dfd5da;
+      border-radius: 22px;
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 14px 42px rgba(75, 53, 67, .08);
+    }
+    .label { padding: 18px 20px 12px; }
+    .label strong { font-size: 18px; }
+    .label span { display: block; margin-top: 5px; color: #817681; font-size: 13px; }
+    .screen {
+      position: relative;
+      height: 570px;
+      margin: 0 12px 12px;
+      overflow: hidden;
+      border: 1px solid #e8dde1;
+      border-radius: 16px;
+      background: #faf7f8;
+    }
+    .topbar {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid #ebe1e5;
+      background: rgba(255,255,255,.8);
+    }
+    .name { font-weight: 650; }
+    .status { color: #9a7286; font-size: 12px; }
+    .chat { padding: 18px 16px 90px; }
+    .bubble {
+      width: fit-content;
+      max-width: 78%;
+      margin-bottom: 12px;
+      padding: 10px 13px;
+      border-radius: 15px;
+      background: #eee5e9;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .bubble.me { margin-left: auto; background: #594451; color: white; }
+    .input {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      left: 12px;
+      padding: 13px 15px;
+      border: 1px solid #e2d7dc;
+      border-radius: 14px;
+      background: white;
+      color: #aaa0a7;
+      font-size: 12px;
+    }
+    .avatar-stage {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 28%, rgba(255,255,255,.95), transparent 34%),
+        linear-gradient(160deg, #eadde3, #c9b5c0);
+    }
+    .character {
+      position: absolute;
+      left: 50%;
+      bottom: -8px;
+      width: 184px;
+      height: 330px;
+      transform: translateX(-50%);
+    }
+    .body {
+      position: absolute;
+      left: 27px;
+      bottom: 0;
+      width: 132px;
+      height: 160px;
+      border-radius: 58px 58px 20px 20px;
+      background: linear-gradient(160deg, #453943, #241f25);
+      box-shadow: 0 18px 30px rgba(37,26,33,.22);
+    }
+    .neck {
+      position: absolute;
+      z-index: 2;
+      left: 73px;
+      bottom: 144px;
+      width: 40px;
+      height: 40px;
+      background: #f1d7ce;
+    }
+    .hair-back {
+      position: absolute;
+      z-index: 1;
+      left: 24px;
+      top: 14px;
+      width: 140px;
+      height: 205px;
+      border-radius: 70px 70px 55px 55px;
+      background: linear-gradient(145deg, #4b3f4c, #201d24);
+    }
+    .face {
+      position: absolute;
+      z-index: 3;
+      left: 48px;
+      top: 43px;
+      width: 92px;
+      height: 118px;
+      border-radius: 44px 44px 48px 48px;
+      background: linear-gradient(145deg, #fae8e0, #e9c8bd);
+      box-shadow: inset 0 -8px 15px rgba(178,126,117,.09);
+    }
+    .bang {
+      position: absolute;
+      z-index: 4;
+      left: 41px;
+      top: 26px;
+      width: 107px;
+      height: 62px;
+      border-radius: 55px 55px 45% 18%;
+      background: #302a32;
+      transform: rotate(-4deg);
+    }
+    .bang::after {
+      content: "";
+      position: absolute;
+      right: -5px;
+      top: 19px;
+      width: 47px;
+      height: 74px;
+      border-radius: 50%;
+      background: #302a32;
+      transform: rotate(-17deg);
+    }
+    .eye {
+      position: absolute;
+      z-index: 5;
+      top: 103px;
+      width: 12px;
+      height: 7px;
+      border-bottom: 2px solid #574451;
+      border-radius: 50%;
+    }
+    .eye.left { left: 70px; }
+    .eye.right { right: 69px; }
+    .mouth {
+      position: absolute;
+      z-index: 5;
+      left: 88px;
+      top: 133px;
+      width: 12px;
+      height: 5px;
+      border-bottom: 2px solid #a66e72;
+      border-radius: 50%;
+    }
+    .collar {
+      position: absolute;
+      z-index: 4;
+      left: 64px;
+      bottom: 133px;
+      width: 58px;
+      height: 34px;
+      border-radius: 50%;
+      border-bottom: 12px solid #efe7e5;
+    }
+    .character small {
+      position: absolute;
+      z-index: 7;
+      right: 5px;
+      bottom: 47px;
+      padding: 7px 9px;
+      border-radius: 11px 11px 11px 3px;
+      background: rgba(255,255,255,.9);
+      color: #655761;
+      box-shadow: 0 6px 18px rgba(61,44,55,.12);
+    }
+    .layout-a { display: grid; grid-template-columns: minmax(0, 1fr) 44%; }
+    .layout-a .conversation { position: relative; }
+    .layout-a .avatar-stage { border-left: 1px solid rgba(255,255,255,.55); }
+    .layout-a .character { width: 210px; height: 355px; transform: translateX(-50%) scale(1.08); transform-origin: bottom; }
+    .live {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 9;
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.76);
+      color: #795d6d;
+      font-size: 11px;
+      backdrop-filter: blur(8px);
+    }
+    .layout-b .avatar-stage { position: absolute; inset: 54px 0 0; opacity: .96; }
+    .layout-b .character { left: 70%; bottom: -24px; transform: translateX(-50%) scale(1.33); transform-origin: bottom; }
+    .layout-b .conversation { position: relative; z-index: 8; width: 62%; height: calc(100% - 54px); }
+    .layout-b .bubble { background: rgba(255,255,255,.86); backdrop-filter: blur(8px); }
+    .layout-c .avatar-island {
+      position: absolute;
+      top: 72px;
+      right: 14px;
+      width: 150px;
+      height: 205px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.8);
+      border-radius: 22px;
+      background: linear-gradient(160deg, #e6d7df, #bda8b5);
+      box-shadow: 0 14px 30px rgba(70,48,62,.18);
+    }
+    .layout-c .character { bottom: -70px; transform: translateX(-50%) scale(.72); transform-origin: bottom; }
+    .layout-c .conversation { width: calc(100% - 150px); }
+    .hint {
+      position: absolute;
+      right: 16px;
+      bottom: 220px;
+      color: rgba(255,255,255,.85);
+      font-size: 11px;
+    }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .screen { height: 520px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>澪的日常聊天：人物如何出现？</h1>
+    <p class="intro">人物已用明确轮廓标出。重点比较她与聊天内容的空间关系，而不是角色最终画风。</p>
+    <section class="grid">
+      <article class="option">
+        <div class="label"><strong>A 常驻侧台</strong><span>人物始终在右侧，占据独立陪伴舞台</span></div>
+        <div class="screen">
+          <div class="topbar"><span class="name">澪</span><span class="status">正在陪你 · 在线</span></div>
+          <div class="layout-a" style="height:calc(100% - 54px)">
+            <div class="conversation">
+              <div class="chat">
+                <div class="bubble">今天的接口问题解决了吗？</div>
+                <div class="bubble me">还差一个奇怪的状态同步。</div>
+                <div class="bubble">先别急。把报错给我看看，我们慢慢拆。</div>
+              </div>
+              <div class="input">和澪说点什么…</div>
+            </div>
+            <div class="avatar-stage">
+              <span class="live">LIVE2D · 待机</span>
+              <div class="character">
+                <div class="hair-back"></div><div class="body"></div><div class="neck"></div>
+                <div class="face"></div><div class="bang"></div>
+                <i class="eye left"></i><i class="eye right"></i><i class="mouth"></i><i class="collar"></i>
+                <small>我在。</small>
+              </div>
+              <span class="hint">右侧就是人物区域</span>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="option">
+        <div class="label"><strong>B 融合舞台</strong><span>人物成为背景主体，聊天覆盖在前景</span></div>
+        <div class="screen layout-b">
+          <div class="topbar"><span class="name">澪</span><span class="status">安静陪伴中</span></div>
+          <div class="avatar-stage">
+            <div class="character">
+              <div class="hair-back"></div><div class="body"></div><div class="neck"></div>
+              <div class="face"></div><div class="bang"></div>
+              <i class="eye left"></i><i class="eye right"></i><i class="mouth"></i><i class="collar"></i>
+            </div>
+          </div>
+          <div class="conversation">
+            <div class="chat">
+              <div class="bubble">你已经盯着它很久了。</div>
+              <div class="bubble me">被一个 bug 卡住了。</div>
+              <div class="bubble">那就先讲给我听。</div>
+            </div>
+          </div>
+          <div class="input">和澪说点什么…</div>
+        </div>
+      </article>
+      <article class="option">
+        <div class="label"><strong>C 陪伴浮岛</strong><span>聊天优先，人物缩在可展开的小舞台</span></div>
+        <div class="screen layout-c">
+          <div class="topbar"><span class="name">澪</span><span class="status">在线</span></div>
+          <div class="conversation">
+            <div class="chat">
+              <div class="bubble">今天还顺利吗？</div>
+              <div class="bubble me">忙，但比昨天好一点。</div>
+              <div class="bubble">嗯。那也算有在往前走。</div>
+            </div>
+          </div>
+          <div class="avatar-island">
+            <div class="character">
+              <div class="hair-back"></div><div class="body"></div><div class="neck"></div>
+              <div class="face"></div><div class="bang"></div>
+              <i class="eye left"></i><i class="eye right"></i><i class="mouth"></i><i class="collar"></i>
+            </div>
+          </div>
+          <div class="input">和澪说点什么…</div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

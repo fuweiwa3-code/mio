@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>澪 - 聊天与人物排版确认</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --ink: #302b35;
+      --muted: #807580;
+      --line: #e5dbe0;
+      --paper: #fbf8f9;
+      --accent: #5b4653;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: #f4eff1;
+      font-family: Inter, "PingFang SC", sans-serif;
+    }
+    button { font: inherit; }
+    .page { max-width: 1240px; margin: 0 auto; padding: 24px; }
+    .heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    h1 { margin: 0 0 6px; font: 600 28px/1.25 Georgia, serif; }
+    .lead { margin: 0; color: var(--muted); font-size: 13px; }
+    .phase {
+      flex: none;
+      padding: 7px 11px;
+      border: 1px solid #d9ccd2;
+      border-radius: 999px;
+      background: rgba(255,255,255,.62);
+      color: #715f69;
+      font-size: 11px;
+    }
+    .app {
+      height: min(720px, calc(100vh - 125px));
+      min-height: 590px;
+      overflow: hidden;
+      border: 1px solid #ded2d8;
+      border-radius: 24px;
+      background: white;
+      box-shadow: 0 22px 60px rgba(69,48,61,.12);
+    }
+    .topbar {
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.9);
+    }
+    .identity, .controls, .toggle-wrap { display: flex; align-items: center; }
+    .identity { gap: 11px; }
+    .mini-avatar {
+      width: 36px; height: 36px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: #9b818e; color: white;
+      font-family: Georgia, serif;
+    }
+    .identity strong { display: block; font-size: 14px; }
+    .identity small { color: #9a7b8a; font-size: 11px; }
+    .controls { gap: 18px; }
+    .voice { color: #766a72; font-size: 12px; }
+    .toggle-wrap { gap: 9px; cursor: pointer; }
+    .toggle-label { color: #685b63; font-size: 13px; font-weight: 600; }
+    .toggle {
+      position: relative;
+      width: 44px; height: 25px;
+      padding: 0; border: 0; border-radius: 999px;
+      background: #cec3c8; cursor: pointer;
+      transition: background .25s ease;
+    }
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 19px; height: 19px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 2px 7px rgba(50,35,44,.23);
+      transition: transform .25s ease;
+    }
+    .toggle[aria-checked="true"] { background: var(--accent); }
+    .toggle[aria-checked="true"]::after { transform: translateX(19px); }
+    .workspace {
+      height: calc(100% - 68px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 0fr;
+      transition: grid-template-columns .38s ease;
+    }
+    .app.avatar-on .workspace {
+      grid-template-columns: minmax(560px, 68fr) minmax(280px, 32fr);
+    }
+    .conversation { position: relative; min-width: 0; background: var(--paper); }
+    .messages {
+      height: 100%;
+      overflow: auto;
+      padding: 34px clamp(24px, 7%, 64px) 116px;
+    }
+    .day { margin-bottom: 25px; color: #aaa0a6; text-align: center; font-size: 11px; }
+    .row { display: flex; margin-bottom: 15px; }
+    .row.mine { justify-content: flex-end; }
+    .bubble {
+      max-width: min(620px, 82%);
+      padding: 11px 15px;
+      border-radius: 17px 17px 17px 5px;
+      background: #eee6ea;
+      font-size: 14px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+    .mine .bubble {
+      border-radius: 17px 17px 5px 17px;
+      background: var(--accent);
+      color: white;
+    }
+    .composer {
+      position: absolute;
+      right: clamp(20px, 6%, 54px);
+      bottom: 22px;
+      left: clamp(20px, 6%, 54px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px 10px 17px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 12px 32px rgba(72,50,64,.09);
+    }
+    .composer span { flex: 1; color: #aaa0a6; font-size: 13px; }
+    .send {
+      width: 36px; height: 36px;
+      border: 0; border-radius: 12px;
+      background: var(--accent); color: white;
+    }
+    .stage {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border-left: 1px solid rgba(255,255,255,.7);
+      background:
+        radial-gradient(circle at 50% 22%, rgba(255,255,255,.96), transparent 34%),
+        linear-gradient(160deg, #eadde3, #c5afbb);
+      opacity: 0;
+      transform: translateX(24px);
+      transition: opacity .25s ease, transform .38s ease;
+    }
+    .avatar-on .stage { opacity: 1; transform: translateX(0); }
+    .stage-tools {
+      position: absolute;
+      z-index: 20;
+      top: 16px; right: 16px; left: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .live {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.72);
+      color: #755a69;
+      font-size: 11px;
+      backdrop-filter: blur(9px);
+    }
+    .close-stage {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 11px;
+      border: 1px solid rgba(108,82,96,.18);
+      border-radius: 11px;
+      background: rgba(255,255,255,.86);
+      color: #5d4c55;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(61,44,55,.08);
+    }
+    .close-stage b { font-size: 16px; line-height: 1; font-weight: 400; }
+    .character {
+      position: absolute;
+      left: 50%;
+      bottom: 38px;
+      width: 210px;
+      height: 405px;
+      transform: translateX(-50%);
+    }
+    .body {
+      position: absolute; left: 27px; bottom: 0;
+      width: 158px; height: 194px;
+      border-radius: 70px 70px 24px 24px;
+      background: linear-gradient(155deg, #4a3d47, #211d23);
+    }
+    .neck { position: absolute; z-index: 2; left: 83px; bottom: 178px; width: 46px; height: 48px; background: #efd4cb; }
+    .hair-back {
+      position: absolute; z-index: 1; left: 25px; top: 13px;
+      width: 162px; height: 255px;
+      border-radius: 82px 82px 65px 65px;
+      background: linear-gradient(145deg, #504250, #211e24);
+    }
+    .face {
+      position: absolute; z-index: 3; left: 55px; top: 52px;
+      width: 106px; height: 140px;
+      border-radius: 52px 52px 56px 56px;
+      background: linear-gradient(145deg, #fae8e0, #e7c5bb);
+    }
+    .bang {
+      position: absolute; z-index: 4; left: 47px; top: 31px;
+      width: 123px; height: 74px;
+      border-radius: 64px 64px 45% 18%;
+      background: #322b33; transform: rotate(-4deg);
+    }
+    .bang::after {
+      content: ""; position: absolute; right: -5px; top: 23px;
+      width: 54px; height: 87px; border-radius: 50%;
+      background: #322b33; transform: rotate(-17deg);
+    }
+    .eye {
+      position: absolute; z-index: 5; top: 123px;
+      width: 14px; height: 8px;
+      border-bottom: 2px solid #574451; border-radius: 50%;
+    }
+    .eye.left { left: 80px; }
+    .eye.right { right: 78px; }
+    .mouth {
+      position: absolute; z-index: 5; left: 101px; top: 158px;
+      width: 14px; height: 6px;
+      border-bottom: 2px solid #a66e72; border-radius: 50%;
+    }
+    .collar {
+      position: absolute; z-index: 4; left: 72px; bottom: 163px;
+      width: 68px; height: 39px; border-radius: 50%;
+      border-bottom: 13px solid #efe7e5;
+    }
+    .stage-note {
+      position: absolute;
+      right: 16px; bottom: 17px; left: 16px;
+      color: rgba(74,55,66,.68);
+      text-align: center;
+      font-size: 11px;
+    }
+    @media (max-width: 900px) {
+      .app.avatar-on .workspace { grid-template-columns: minmax(0, 64fr) minmax(250px, 36fr); }
+      .bubble { max-width: 88%; }
+    }
+    @media (max-width: 720px) {
+      .page { padding: 12px; }
+      .heading { align-items: flex-start; }
+      .phase { display: none; }
+      .app { min-height: 620px; height: calc(100vh - 105px); border-radius: 18px; }
+      .voice { display: none; }
+      .workspace, .app.avatar-on .workspace { display: block; }
+      .stage {
+        position: absolute;
+        z-index: 10;
+        top: 80px; right: 12px;
+        width: min(74vw, 300px);
+        height: 60%;
+        border: 1px solid rgba(255,255,255,.82);
+        border-radius: 20px;
+        box-shadow: 0 18px 45px rgba(57,39,50,.22);
+      }
+      .app:not(.avatar-on) .stage { visibility: hidden; }
+      .character { bottom: 4px; transform: translateX(-50%) scale(.76); transform-origin: bottom; }
+      .close-stage span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="heading">
+      <div>
+        <h1>聊天与人物排版确认</h1>
+        <p class="lead">当前只确认布局和交互，视觉风格将在下一阶段单独探索。</p>
+      </div>
+      <span class="phase">阶段：低保真结构稿</span>
+    </div>
+
+    <section class="app" id="app">
+      <header class="topbar">
+        <div class="identity">
+          <div class="mini-avatar">澪</div>
+          <div><strong>澪</strong><small>在线 · 安静陪着你</small></div>
+        </div>
+        <div class="controls">
+          <span class="voice">开始语音陪伴</span>
+          <label class="toggle-wrap">
+            <span class="toggle-label">显示澪</span>
+            <button class="toggle" id="avatarToggle" role="switch" aria-checked="false" aria-label="显示澪"></button>
+          </label>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <section class="conversation">
+          <div class="messages">
+            <div class="day">今天 21:14</div>
+            <div class="row"><div class="bubble">今天的接口问题解决了吗？</div></div>
+            <div class="row mine"><div class="bubble">还差一个奇怪的状态同步，找不到原因。</div></div>
+            <div class="row"><div class="bubble">先别急。把状态变化的顺序给我看看，我们慢慢拆。尤其是请求完成之后，界面状态和后端 trace 分别发生了什么？</div></div>
+            <div class="row mine"><div class="bubble">请求已经成功了，但前端仍然停在 thinking，刷新之后才显示最终回复。</div></div>
+            <div class="row"><div class="bubble">听起来更像流式响应结束事件没有正确更新 UI。你把最后几条事件贴给我，我陪你一起看。</div></div>
+          </div>
+          <div class="composer"><span>和澪说点什么…</span><button class="send">↑</button></div>
+        </section>
+
+        <aside class="stage" aria-label="澪的人物舞台">
+          <div class="stage-tools">
+            <span class="live">LIVE2D · 待机</span>
+            <button class="close-stage" id="closeStage" aria-label="收起人物"><b>×</b><span>收起人物</span></button>
+          </div>
+          <div class="character">
+            <div class="hair-back"></div><div class="body"></div><div class="neck"></div>
+            <div class="face"></div><div class="bang"></div>
+            <i class="eye left"></i><i class="eye right"></i><i class="mouth"></i><i class="collar"></i>
+          </div>
+          <div class="stage-note">人物区约占 32%，聊天内容保持完整可读</div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const app = document.querySelector("#app");
+    const toggle = document.querySelector("#avatarToggle");
+    const closeStage = document.querySelector("#closeStage");
+
+    function setAvatarVisible(visible) {
+      app.classList.toggle("avatar-on", visible);
+      toggle.setAttribute("aria-checked", String(visible));
+    }
+
+    toggle.addEventListener("click", () => {
+      setAvatarVisible(toggle.getAttribute("aria-checked") !== "true");
+    });
+    closeStage.addEventListener("click", () => setAvatarVisible(false));
+  </script>
+</body>
+</html>

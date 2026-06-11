@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mio 暖色静室最终构图</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #30282d;
+      background: #e9e4e2;
+      font-family: "Avenir Next", "PingFang SC", sans-serif;
+    }
+    header { max-width: 1420px; margin: auto; padding: 28px 34px 15px; }
+    h1 { margin: 0 0 7px; font-size: 28px; letter-spacing: -.035em; }
+    header p { margin: 0; color: #746a6f; }
+    .wrap { max-width: 1420px; margin: auto; padding: 16px 34px 42px; }
+    .screen {
+      position: relative;
+      height: min(760px, calc(100vh - 155px));
+      min-height: 580px;
+      overflow: hidden;
+      border: 1px solid rgba(72,52,62,.12);
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 75% 39%, rgba(205,160,176,.48), transparent 28%),
+        radial-gradient(circle at 27% 24%, rgba(255,255,255,.92), transparent 29%),
+        linear-gradient(145deg,#f6f2ef,#eee7e5);
+      box-shadow: 0 28px 80px rgba(67,49,58,.14);
+    }
+    .screen::after {
+      position:absolute; inset:0; content:""; pointer-events:none; opacity:.16;
+      background-image:radial-gradient(rgba(82,61,71,.14) .55px,transparent .55px);
+      background-size:11px 11px;
+      mask-image:linear-gradient(to bottom,transparent,#000 20%,#000 80%,transparent);
+    }
+    .top {
+      position:absolute; z-index:5; top:0; left:0; right:0;
+      display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:25px 28px;
+    }
+    .close {
+      display:grid; width:44px; height:44px; place-items:center; border:1px solid rgba(75,53,65,.13);
+      border-radius:50%; color:#4b3541; background:rgba(255,253,251,.74); box-shadow:0 8px 24px rgba(67,49,58,.08);
+      font-size:27px; font-weight:300;
+    }
+    .identity { text-align:center; }
+    .identity strong { display:block; font-size:14px; letter-spacing:.03em; }
+    .identity span { display:block; margin-top:5px; color:#887980; font-size:11px; }
+    .timer { justify-self:end; color:#75666d; font:12px ui-monospace,monospace; }
+    .presence {
+      position:absolute; z-index:3; left:9%; top:30%; max-width:360px;
+    }
+    .presence small { color:#967486; font-size:11px; font-weight:700; letter-spacing:.09em; }
+    .presence h2 { margin:13px 0 12px; max-width:330px; font-size:clamp(31px,3vw,47px); line-height:1.14; letter-spacing:-.05em; }
+    .presence p { max-width:310px; margin:0; color:#766b70; font-size:14px; line-height:1.75; }
+    .wave { display:flex; height:45px; align-items:center; gap:5px; margin-top:28px; }
+    .wave i { width:3px; border-radius:99px; background:#946a7e; opacity:.7; }
+    .glow {
+      position:absolute; right:8%; bottom:3%; width:42%; aspect-ratio:1;
+      border-radius:50%; background:rgba(187,136,158,.16); filter:blur(20px);
+    }
+    .person {
+      position:absolute; z-index:2; right:4%; bottom:-4%; width:min(44%,500px); height:86%;
+      object-fit:contain; object-position:bottom right; filter:saturate(.82) contrast(.98);
+    }
+    .subtitle {
+      position:absolute; z-index:5; right:7%; bottom:112px; width:min(56%,690px);
+      padding:16px 22px; border:1px solid rgba(75,53,65,.12); border-radius:16px;
+      color:#342b30; background:rgba(255,253,251,.84); box-shadow:0 14px 38px rgba(70,49,60,.13);
+      backdrop-filter:blur(18px); text-align:center; font-size:16px; line-height:1.6;
+    }
+    .subtitle strong { display:block; margin-bottom:3px; color:#906d7e; font-size:10px; letter-spacing:.1em; }
+    .controls {
+      position:absolute; z-index:6; left:50%; bottom:28px; display:flex; align-items:center; gap:12px; transform:translateX(-50%);
+    }
+    .control {
+      display:grid; width:48px; height:48px; place-items:center; border:1px solid rgba(75,53,65,.12);
+      border-radius:50%; color:#523d48; background:rgba(255,253,251,.78); box-shadow:0 9px 24px rgba(67,49,58,.09);
+      font-size:11px; font-weight:700;
+    }
+    .control.end { width:76px; border-radius:24px; color:#fff; background:#4b3541; }
+    .note { display:flex; justify-content:space-between; padding:17px 4px 0; color:#746a6f; font-size:13px; }
+    .note strong { color:#4b3541; }
+    @media(max-width:780px) {
+      .screen{min-height:680px}.presence{left:8%;top:18%}.presence p{display:none}.person{right:-13%;width:76%;height:70%}
+      .subtitle{right:5%;bottom:108px;width:90%}.timer{display:none}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>暖色静室：最终构图</h1>
+    <p>人物位于右侧前景，字幕悬浮于人物下方；控制区独立置底，避免与字幕争夺注意力。</p>
+  </header>
+  <main class="wrap">
+    <section class="screen">
+      <div class="top">
+        <div class="close">×</div>
+        <div class="identity"><strong>与澪通话中</strong><span>正在听你说</span></div>
+        <div class="timer">02:18</div>
+      </div>
+      <div class="presence">
+        <small>VOICE COMPANION</small>
+        <h2>这里没有别的事需要你赶。</h2>
+        <p>语音、字幕与人物表现共享同一段对话。结束后，完整记录回到聊天页。</p>
+        <div class="wave"><i style="height:12px"></i><i style="height:28px"></i><i style="height:18px"></i><i style="height:42px"></i><i style="height:26px"></i><i style="height:35px"></i><i style="height:15px"></i></div>
+      </div>
+      <div class="glow"></div>
+      <img class="person" src="http://127.0.0.1:5173/src/assets/mio-companion.png" alt="" />
+      <div class="subtitle"><strong>澪</strong>嗯，我在听。你可以慢慢说，不用急着先把情绪整理好。</div>
+      <div class="controls"><div class="control">静音</div><div class="control end">结束</div><div class="control">字幕</div></div>
+    </section>
+    <div class="note"><span><strong>聊天页：</strong>不再常驻展示人物，恢复完整内容宽度。</span><span><strong>通话页：</strong>人物资源失败时降级为头像，不阻断语音与字幕。</span></div>
+  </main>
+</body>
+</html>

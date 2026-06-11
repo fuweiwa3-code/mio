@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mio 视觉风格方向</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; background:#eeeae7; color:#29272a; font-family:"Avenir Next","PingFang SC",sans-serif; }
+    main { max-width:1420px; margin:auto; padding:28px; }
+    h1 { margin:0 0 7px; font-size:29px; letter-spacing:-.03em; }
+    .lead { margin:0 0 24px; color:#746e72; font-size:13px; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .card { padding:15px; border:1px solid rgba(75,62,68,.14); border-radius:22px; background:rgba(255,255,255,.62); }
+    .card h2 { margin:0 0 5px; font-size:17px; }
+    .card>p { height:38px; margin:0 0 13px; color:#756e72; font-size:12px; line-height:1.45; }
+    .screen { position:relative; height:555px; overflow:hidden; border-radius:17px; perspective:1000px; }
+    .bar { position:relative; z-index:30; height:57px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; }
+    .person { display:flex; align-items:center; gap:9px; font-size:12px; font-weight:650; }
+    .avatar { width:30px; height:30px; display:grid; place-items:center; border-radius:50%; font-size:11px; }
+    .switch { display:flex; align-items:center; gap:7px; font-size:10px; }
+    .pill { position:relative; width:35px; height:20px; border-radius:999px; }
+    .pill:after { content:""; position:absolute; top:3px; right:3px; width:14px; height:14px; border-radius:50%; background:white; }
+    .messages { position:absolute; inset:57px 0 0; padding:27px 105px 88px 22px; }
+    .bubble { width:fit-content; max-width:80%; margin-bottom:12px; padding:10px 12px; border-radius:15px 15px 15px 4px; font-size:12px; line-height:1.5; }
+    .bubble.me { margin-left:auto; border-radius:15px 15px 4px 15px; }
+    .composer { position:absolute; z-index:40; right:13px; bottom:13px; left:13px; padding:12px 14px; border-radius:14px; font-size:10px; backdrop-filter:blur(14px); }
+    .figure { position:absolute; z-index:15; right:-22px; bottom:40px; width:183px; height:343px; transform:rotateY(-7deg); filter:drop-shadow(-12px 22px 20px rgba(33,23,29,.2)); }
+    .body { position:absolute; left:24px; bottom:0; width:137px; height:165px; border-radius:61px 61px 20px 20px; }
+    .neck { position:absolute; z-index:2; left:72px; bottom:151px; width:40px; height:41px; background:#efd4cb; }
+    .hair { position:absolute; z-index:1; left:22px; top:8px; width:140px; height:216px; border-radius:72px 72px 56px 56px; background:linear-gradient(145deg,#504250,#211e24); }
+    .face { position:absolute; z-index:3; left:49px; top:42px; width:91px; height:120px; border-radius:44px 44px 49px 49px; background:linear-gradient(145deg,#fae8e0,#e7c5bb); }
+    .bang { position:absolute; z-index:4; left:41px; top:24px; width:107px; height:63px; border-radius:55px 55px 45% 18%; background:#322b33; transform:rotate(-4deg); }
+    .eye { position:absolute; z-index:5; top:102px; width:11px; height:7px; border-bottom:2px solid #574451; border-radius:50%; }
+    .eye.l { left:70px; } .eye.r { right:68px; }
+    .close { position:absolute; z-index:25; top:3px; right:20px; padding:7px 9px; border-radius:10px; font-size:9px; }
+    .tag { display:inline-block; margin-left:5px; padding:3px 6px; border-radius:999px; font-size:8px; vertical-align:2px; }
+
+    .quiet { background:#f7f4f2; border:1px solid #ddd5d2; }
+    .quiet .bar { border-bottom:1px solid #e3dcda; background:rgba(252,250,248,.9); }
+    .quiet .avatar { background:#8b747d; color:white; }
+    .quiet .pill { background:#876f78; }
+    .quiet .bubble { background:#e9e3e1; color:#3c3839; }
+    .quiet .bubble.me { background:#4f4549; color:white; }
+    .quiet .composer,.quiet .close { border:1px solid #ddd5d2; background:rgba(255,255,255,.88); color:#8e8588; }
+    .quiet .body { background:linear-gradient(155deg,#4b4246,#252225); }
+    .quiet .tag { background:#594b51; color:white; }
+
+    .night { background:radial-gradient(circle at 74% 25%,#343341,#18191d 56%); color:#eeeef1; border:1px solid #35353d; }
+    .night .bar { border-bottom:1px solid rgba(255,255,255,.08); background:rgba(24,25,29,.72); backdrop-filter:blur(12px); }
+    .night .avatar { background:#a67c88; color:white; }
+    .night .pill { background:#a87886; }
+    .night .messages { background:linear-gradient(90deg,rgba(24,25,29,.72),rgba(24,25,29,.1)); }
+    .night .bubble { background:rgba(255,255,255,.09); color:#e8e5e8; border:1px solid rgba(255,255,255,.06); backdrop-filter:blur(8px); }
+    .night .bubble.me { background:#a87986; color:#19171a; }
+    .night .composer,.night .close { border:1px solid rgba(255,255,255,.1); background:rgba(34,34,40,.72); color:#aaa7ad; }
+    .night .body { background:linear-gradient(155deg,#282731,#111216); }
+    .night .tag { background:#a87986; color:#201b1e; }
+
+    .desktop { background:#eef0ed; border:1px solid #d5d9d4; }
+    .desktop:before { content:""; position:absolute; inset:57px 0 0; background-image:radial-gradient(#c8cec8 .7px,transparent .7px); background-size:15px 15px; opacity:.45; }
+    .desktop .bar { border-bottom:1px solid #d8ddd7; background:rgba(247,249,246,.88); }
+    .desktop .avatar { background:#68776c; color:white; border-radius:10px; }
+    .desktop .pill { background:#6c7b70; }
+    .desktop .bubble { background:rgba(255,255,255,.82); color:#333a35; border:1px solid #dce1dc; box-shadow:0 7px 18px rgba(44,58,48,.05); }
+    .desktop .bubble.me { background:#53635a; color:white; }
+    .desktop .composer,.desktop .close { border:1px solid #d5dcd6; background:rgba(251,252,250,.9); color:#818a83; box-shadow:0 8px 22px rgba(44,58,48,.07); }
+    .desktop .body { background:linear-gradient(155deg,#435149,#202722); }
+    .desktop .tag { background:#607066; color:white; }
+    @media(max-width:980px){.grid{grid-template-columns:1fr}.screen{height:520px}.card>p{height:auto}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>澪的视觉气质</h1>
+  <p class="lead">三套方案使用完全相同的功能和悬浮构图，只比较页面的情绪、材质和视觉语言。</p>
+  <section class="grid">
+    <article class="card">
+      <h2>A 清冷日常 <span class="tag" style="background:#594b51;color:white">推荐</span></h2>
+      <p>温柔但克制，像安静的个人书房。长期使用耐看，最符合澪的默认人设。</p>
+      <div class="screen quiet">
+        <div class="bar"><div class="person"><span class="avatar">澪</span>澪 · 在线</div><div class="switch">显示澪 <span class="pill"></span></div></div>
+        <div class="messages"><div class="bubble">今天是不是有点累？</div><div class="bubble me">嗯，那个状态问题还没解决。</div><div class="bubble">先把最后几条事件给我。别一个人硬扛。</div></div>
+        <div class="figure"><button class="close">× 收起</button><div class="hair"></div><div class="body"></div><div class="neck"></div><div class="face"></div><div class="bang"></div><i class="eye l"></i><i class="eye r"></i></div>
+        <div class="composer">和澪说点什么…</div>
+      </div>
+    </article>
+    <article class="card">
+      <h2>B 夜间私密</h2>
+      <p>深色、低亮度和局部暖色，更像夜晚的一对一陪伴，沉浸感最强。</p>
+      <div class="screen night">
+        <div class="bar"><div class="person"><span class="avatar">澪</span>澪 · 在线</div><div class="switch">显示澪 <span class="pill"></span></div></div>
+        <div class="messages"><div class="bubble">今天是不是有点累？</div><div class="bubble me">嗯，那个状态问题还没解决。</div><div class="bubble">先把最后几条事件给我。别一个人硬扛。</div></div>
+        <div class="figure"><button class="close">× 收起</button><div class="hair"></div><div class="body"></div><div class="neck"></div><div class="face"></div><div class="bang"></div><i class="eye l"></i><i class="eye r"></i></div>
+        <div class="composer">和澪说点什么…</div>
+      </div>
+    </article>
+    <article class="card">
+      <h2>C 轻盈桌面伴侣</h2>
+      <p>更偏程序员工作台，结构清爽、略带工具感，适合项目上下文与调试功能。</p>
+      <div class="screen desktop">
+        <div class="bar"><div class="person"><span class="avatar">澪</span>澪 · 在线</div><div class="switch">显示澪 <span class="pill"></span></div></div>
+        <div class="messages"><div class="bubble">今天是不是有点累？</div><div class="bubble me">嗯，那个状态问题还没解决。</div><div class="bubble">先把最后几条事件给我。别一个人硬扛。</div></div>
+        <div class="figure"><button class="close">× 收起</button><div class="hair"></div><div class="body"></div><div class="neck"></div><div class="face"></div><div class="bang"></div><i class="eye l"></i><i class="eye r"></i></div>
+        <div class="composer">和澪说点什么…</div>
+      </div>
+    </article>
+  </section>
+</main>
+</body>
+</html>

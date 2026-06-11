@@ -1,0 +1,134 @@
+<style>
+  .direction { margin:28px 0 48px; padding:18px; border:1px solid var(--border); border-radius:24px; background:var(--surface); cursor:pointer; transition:.22s ease; }
+  .direction:hover { transform:translateY(-2px); border-color:#8fa5a3; box-shadow:0 18px 42px rgba(30,45,50,.08); }
+  .direction.selected { border:2px solid #43867f; box-shadow:0 0 0 4px rgba(67,134,127,.12); }
+  .direction-head { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:4px 4px 16px; }
+  .direction-head h3 { margin:0; font-size:22px; }
+  .direction-head p { margin:4px 0 0; max-width:760px; color:var(--muted); }
+  .select-hint { flex:none; padding:8px 12px; border-radius:999px; border:1px solid var(--border); font-size:12px; font-weight:700; }
+  .selected .select-hint { color:white; background:#43867f; border-color:#43867f; }
+  .app { height:520px; display:grid; grid-template-columns:92px minmax(0,1fr); overflow:hidden; border-radius:18px; border:1px solid #cbd3d4; box-shadow:0 16px 50px rgba(18,29,36,.12); }
+  .nav { padding:22px 14px; background:#17212b; color:#dce4e6; display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .logo { width:42px; height:42px; border-radius:50%; background:linear-gradient(145deg,#f5c0b7,#83b9b8); margin-bottom:14px; }
+  .nav-item { width:44px; height:38px; border-radius:12px; background:#293642; }
+  .nav-item.active { background:#b87976; box-shadow:inset 3px 0 #f3b4ad; }
+  .nav-spacer { flex:1; }
+  .chat-shell { background:#faf7f3; display:grid; grid-template-rows:58px minmax(0,1fr) 94px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:0 24px; border-bottom:1px solid #e3ddd7; background:rgba(255,255,255,.65); }
+  .brand { font-weight:750; color:#263238; }
+  .status { color:#4c7f72; font-size:13px; }
+  .chat { position:relative; padding:28px 8% 20px; overflow:hidden; }
+  .portrait { position:absolute; left:5%; bottom:0; width:180px; height:330px; border-radius:100px 100px 12px 12px; background:linear-gradient(160deg,#ead0c2 0%,#b9897f 42%,#35454c 100%); opacity:.88; }
+  .conversation { position:relative; z-index:1; width:62%; margin-left:auto; }
+  .bubble { max-width:72%; padding:14px 16px; margin:12px 0; border-radius:18px; color:#4b4542; background:#fff; border:1px solid #e8dcd4; box-shadow:0 8px 22px rgba(96,69,58,.05); }
+  .bubble.user { margin-left:auto; background:#dcebea; border-color:#c4ddda; }
+  .bubble small { display:block; height:6px; border-radius:8px; background:currentColor; opacity:.3; margin:6px 0; }
+  .composer { margin:10px 7% 18px; border:1px solid #ddd5cf; border-radius:18px; background:white; display:flex; align-items:center; padding:0 18px; color:#8b817b; }
+  .send { margin-left:auto; width:42px; height:42px; border-radius:13px; background:#4e918d; }
+  .dual-shell { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(350px,.8fr); background:#faf7f3; }
+  .dual-chat { display:grid; grid-template-rows:58px minmax(0,1fr) 88px; min-width:0; }
+  .dual-chat .chat { padding-left:6%; }
+  .dual-chat .conversation { width:74%; }
+  .dual-chat .portrait { width:135px; height:270px; opacity:.7; }
+  .debug { padding:22px; color:#dce4e6; background:linear-gradient(145deg,#18222c,#111820); overflow:hidden; }
+  .debug-title { display:flex; justify-content:space-between; font-weight:750; margin-bottom:20px; }
+  .live { color:#73c59d; font-size:12px; }
+  .tabs { display:flex; gap:20px; padding-bottom:12px; border-bottom:1px solid #34414c; color:#9eabb4; font-size:12px; }
+  .tabs b { color:#f0c2bd; }
+  .trace { margin-top:14px; border:1px solid #303d48; border-radius:14px; overflow:hidden; }
+  .trace-row { height:46px; display:flex; align-items:center; gap:10px; padding:0 12px; border-bottom:1px solid #303d48; font-size:12px; }
+  .trace-row:before { content:""; width:22px; height:22px; border-radius:7px; background:#5a7980; }
+  .trace-row:after { content:"✓"; color:#72c69b; margin-left:auto; }
+  .metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .metric { height:100px; border:1px solid #303d48; border-radius:13px; padding:12px; font-size:12px; color:#aeb9c0; }
+  .work-shell { background:#101820; display:grid; grid-template-rows:58px minmax(0,1fr); color:#dbe4e7; }
+  .workbar { display:flex; align-items:center; justify-content:space-between; padding:0 24px; border-bottom:1px solid #2e3b46; }
+  .work-main { padding:20px; display:grid; grid-template-columns:1.5fr .75fr; grid-template-rows:1.2fr .8fr; gap:14px; }
+  .panel { border:1px solid #32414c; border-radius:15px; background:#17222c; padding:16px; overflow:hidden; }
+  .panel-title { font-size:13px; color:#aab6be; margin-bottom:12px; }
+  .graph { position:relative; height:calc(100% - 30px); background:radial-gradient(circle at 25% 36%,#65b3b1 0 5px,transparent 6px),radial-gradient(circle at 47% 58%,#d7908a 0 6px,transparent 7px),radial-gradient(circle at 70% 30%,#7fa4cf 0 5px,transparent 6px),radial-gradient(circle at 80% 70%,#b99bc8 0 5px,transparent 6px); }
+  .graph:after { content:""; position:absolute; inset:12%; border:1px dashed #55717e; transform:skew(-12deg); }
+  .agent-list { grid-row:span 2; }
+  .agent-row { height:58px; margin-bottom:9px; border:1px solid #31404b; border-radius:12px; display:flex; align-items:center; padding:0 12px; }
+  .agent-row:before { content:""; width:30px; height:30px; margin-right:10px; border-radius:9px; background:#365d63; }
+  .agent-row:after { content:"ACTIVE"; margin-left:auto; font-size:9px; color:#70c69d; }
+  .module-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .module { height:80px; border:1px solid #34434e; border-radius:12px; background:#1b2832; }
+  .badge { color:#39776e; background:#e0f0eb; padding:4px 9px; border-radius:999px; font-size:11px; font-weight:750; }
+  @media(max-width:900px){.app{height:620px;grid-template-columns:60px 1fr}.dual-shell{grid-template-columns:1fr}.debug{display:none}.work-main{grid-template-columns:1fr}.agent-list{display:none}.portrait{opacity:.35}.conversation{width:86%}}
+</style>
+
+<h2>三种产品身份的真实界面轮廓</h2>
+<p class="subtitle">这次不是按钮跳转。向下浏览三张完整草图，点击整张方案后边框会高亮。</p>
+
+<section class="direction" data-choice="companion-first" onclick="toggleSelect(this)">
+  <div class="direction-head">
+    <div><h3>A. 陪伴优先</h3><p>打开产品先看到澪和对话。技术能力在需要时进入独立页面，日常使用最自然。</p></div>
+    <span class="select-hint">点击选择 A</span>
+  </div>
+  <div class="app">
+    <aside class="nav"><div class="logo"></div><div class="nav-item active"></div><div class="nav-item"></div><div class="nav-item"></div><div class="nav-spacer"></div><div class="nav-item"></div></aside>
+    <main class="chat-shell">
+      <div class="topbar"><span class="brand">Mio · 和澪聊聊</span><span class="status">澪在这里</span></div>
+      <div class="chat">
+        <div class="portrait"></div>
+        <div class="conversation">
+          <div class="bubble"><small style="width:82%"></small><small style="width:55%"></small></div>
+          <div class="bubble user"><small style="width:90%"></small><small style="width:62%"></small></div>
+          <div class="bubble"><small style="width:74%"></small><small style="width:94%"></small><small style="width:48%"></small></div>
+        </div>
+      </div>
+      <div class="composer">和澪说点什么……<div class="send"></div></div>
+    </main>
+  </div>
+</section>
+
+<section class="direction" data-choice="dual-mode" onclick="toggleSelect(this)">
+  <div class="direction-head">
+    <div><h3>B. 双模式 <span class="badge">推荐</span></h3><p>默认仍然是陪伴体验；演示或调试时，从右侧展开实时 Agent Trace。两种身份共享同一段对话。</p></div>
+    <span class="select-hint">点击选择 B</span>
+  </div>
+  <div class="app">
+    <aside class="nav"><div class="logo"></div><div class="nav-item active"></div><div class="nav-item"></div><div class="nav-item"></div><div class="nav-spacer"></div><div class="nav-item"></div></aside>
+    <main class="dual-shell">
+      <div class="dual-chat">
+        <div class="topbar"><span class="brand">Mio · 和澪聊聊</span><span class="status">Focus 模式</span></div>
+        <div class="chat">
+          <div class="portrait"></div>
+          <div class="conversation">
+            <div class="bubble"><small style="width:75%"></small><small style="width:48%"></small></div>
+            <div class="bubble user"><small style="width:92%"></small><small style="width:64%"></small></div>
+            <div class="bubble"><small style="width:88%"></small><small style="width:76%"></small><small style="width:42%"></small></div>
+          </div>
+        </div>
+        <div class="composer">继续和澪说……<div class="send"></div></div>
+      </div>
+      <aside class="debug">
+        <div class="debug-title">Agent Debug <span class="live">● LIVE</span></div>
+        <div class="tabs"><b>Trace</b><span>Memory</span><span>RAG</span><span>Tools</span></div>
+        <div class="trace">
+          <div class="trace-row">理解情绪与意图</div><div class="trace-row">检索长期记忆</div><div class="trace-row">搜索项目知识</div><div class="trace-row">组装 Persona Prompt</div><div class="trace-row">生成澪的回复</div>
+        </div>
+        <div class="metrics"><div class="metric">Memory Hits<br><br>3 条相关记忆</div><div class="metric">RAG Hits<br><br>5 个知识片段</div></div>
+      </aside>
+    </main>
+  </div>
+</section>
+
+<section class="direction" data-choice="agent-workbench" onclick="toggleSelect(this)">
+  <div class="direction-head">
+    <div><h3>C. Agent 工作台优先</h3><p>首页就是智能系统控制台。技术表达最强，但陪伴关系会退到一个功能模块的位置。</p></div>
+    <span class="select-hint">点击选择 C</span>
+  </div>
+  <div class="app">
+    <aside class="nav"><div class="logo"></div><div class="nav-item active"></div><div class="nav-item"></div><div class="nav-item"></div><div class="nav-spacer"></div><div class="nav-item"></div></aside>
+    <main class="work-shell">
+      <div class="workbar"><span class="brand">Mio Agent Workbench</span><span class="status">System healthy · 6 services</span></div>
+      <div class="work-main">
+        <div class="panel"><div class="panel-title">Live Agent Graph</div><div class="graph"></div></div>
+        <div class="panel agent-list"><div class="panel-title">Agent Modules</div><div class="agent-row">Persona Layer</div><div class="agent-row">Memory Service</div><div class="agent-row">RAG Pipeline</div><div class="agent-row">Tool Registry</div><div class="agent-row">Safety Guard</div></div>
+        <div class="panel"><div class="panel-title">Capability Overview</div><div class="module-grid"><div class="module"></div><div class="module"></div><div class="module"></div><div class="module"></div></div></div>
+      </div>
+    </main>
+  </div>
+</section>

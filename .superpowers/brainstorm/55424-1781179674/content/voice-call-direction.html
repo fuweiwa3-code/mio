@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mio 全屏语音通话方向</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #2f282c;
+      background: #e9e4e2;
+      font-family: "Avenir Next", "PingFang SC", sans-serif;
+    }
+    header { max-width: 1540px; margin: 0 auto; padding: 30px 34px 14px; }
+    h1 { margin: 0 0 7px; font-size: 29px; letter-spacing: -.035em; }
+    header p { margin: 0; color: #756b70; font-size: 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      max-width: 1540px;
+      margin: 0 auto;
+      padding: 18px 34px 48px;
+      gap: 20px;
+    }
+    .option {
+      overflow: hidden;
+      border: 1px solid rgba(62,45,54,.12);
+      border-radius: 24px;
+      background: rgba(255,255,255,.76);
+      box-shadow: 0 20px 56px rgba(62,45,54,.09);
+      cursor: pointer;
+      transition: .22s ease;
+    }
+    .option:hover { transform: translateY(-3px); box-shadow: 0 26px 68px rgba(62,45,54,.14); }
+    .option.selected { outline: 3px solid #553d49; outline-offset: 3px; }
+    .screen {
+      position: relative;
+      height: 480px;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(62,45,54,.1);
+    }
+    .close, .state, .timer, .controls, .subtitle, .wave { position: absolute; z-index: 4; }
+    .close {
+      top: 18px; left: 18px; display: grid; width: 36px; height: 36px;
+      place-items: center; border-radius: 50%; font-size: 22px; line-height: 1;
+    }
+    .state { top: 21px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: .08em; }
+    .timer { top: 21px; right: 22px; font: 11px ui-monospace, monospace; opacity: .7; }
+    .person {
+      position: absolute; z-index: 2; right: -2%; bottom: 0; width: 52%; height: 91%;
+      object-fit: contain; object-position: bottom right;
+      filter: saturate(.82) contrast(.98);
+    }
+    .subtitle {
+      right: 8%; bottom: 92px; width: 56%; padding: 12px 17px;
+      border-radius: 14px; text-align: center; font-size: 14px; line-height: 1.55;
+    }
+    .subtitle strong { display: block; margin-bottom: 3px; font-size: 10px; letter-spacing: .08em; }
+    .controls {
+      left: 50%; bottom: 22px; display: flex; gap: 10px; transform: translateX(-50%);
+    }
+    .control {
+      display: grid; width: 43px; height: 43px; place-items: center;
+      border-radius: 50%; font-size: 14px; font-weight: 700;
+    }
+    .control.end { width: 54px; border-radius: 22px; }
+    .wave {
+      left: 8%; top: 38%; display: flex; height: 45px; align-items: center; gap: 4px;
+    }
+    .wave i { width: 3px; border-radius: 99px; opacity: .65; }
+    .copy { padding: 19px 21px 23px; }
+    .copy h2 { margin: 0 0 7px; font-size: 18px; }
+    .copy p { min-height: 64px; margin: 0; color: #756b70; font-size: 13px; line-height: 1.65; }
+    .tag { display:inline-block; margin-top:12px; padding:6px 10px; border-radius:99px; font-size:11px; font-weight:700; }
+
+    .a .screen {
+      background:
+        radial-gradient(circle at 76% 43%, rgba(199,151,169,.42), transparent 28%),
+        radial-gradient(circle at 28% 24%, rgba(255,255,255,.85), transparent 29%),
+        #f1ece9;
+    }
+    .a .screen::before {
+      position:absolute; inset:0; content:"";
+      background-image: radial-gradient(rgba(91,70,82,.11) .5px, transparent .5px);
+      background-size: 11px 11px; opacity:.18;
+    }
+    .a .close, .a .control { color:#4b3541; background:rgba(255,253,251,.72); border:1px solid rgba(75,53,65,.12); }
+    .a .state { color:#6f6168; }
+    .a .control.end { color:#fff; background:#4b3541; }
+    .a .subtitle { color:#342b30; background:rgba(255,253,251,.82); border:1px solid rgba(75,53,65,.12); box-shadow:0 12px 34px rgba(70,49,60,.12); backdrop-filter:blur(16px); }
+    .a .subtitle strong { color:#8d6d7b; }
+    .a .wave i { background:#8d6578; }
+    .a .tag { color:#fff; background:#4b3541; }
+
+    .b .screen {
+      color:#f8f2f5;
+      background:
+        radial-gradient(circle at 74% 38%, rgba(143,88,115,.4), transparent 29%),
+        linear-gradient(145deg,#171217,#080708 65%);
+    }
+    .b .person { filter:saturate(.72) brightness(.82); }
+    .b .close, .b .control { color:#fff; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.13); backdrop-filter:blur(15px); }
+    .b .state { color:#d9ccd3; }
+    .b .control.end { color:#fff; background:#87566d; }
+    .b .subtitle { color:#fff; background:rgba(15,12,14,.62); border:1px solid rgba(255,255,255,.14); backdrop-filter:blur(18px); }
+    .b .subtitle strong { color:#c99aaf; }
+    .b .wave i { background:#c487a3; }
+    .b .tag { color:#fff; background:#694859; }
+
+    .c .screen { background:#ece7e4; }
+    .c .desk {
+      position:absolute; inset:64px 19% 80px 5%; padding:28px 22px;
+      border-radius:13px; color:#6f666a; background:rgba(255,255,255,.76);
+      box-shadow:0 16px 42px rgba(65,49,57,.11); transform:perspective(700px) rotateY(3deg);
+    }
+    .c .desk::before { content:"PROJECT NOTES"; display:block; margin-bottom:26px; color:#9a8e93; font-size:8px; letter-spacing:.15em; }
+    .c .desk-line { width:70%; height:7px; margin:9px 0; border-radius:99px; background:#d2cbca; }
+    .c .person { width:49%; }
+    .c .close, .c .control { color:#4b3541; background:rgba(255,255,255,.78); border:1px solid rgba(75,53,65,.12); }
+    .c .state { color:#6f6168; }
+    .c .control.end { color:#fff; background:#4b3541; }
+    .c .subtitle { color:#fff; background:rgba(51,40,46,.76); box-shadow:0 12px 34px rgba(50,40,45,.17); backdrop-filter:blur(14px); }
+    .c .subtitle strong { color:#e3bacb; }
+    .c .wave i { background:#795365; }
+    .c .tag { color:#fff; background:#4b3541; }
+    @media(max-width:1050px){ .grid{grid-template-columns:1fr}.screen{height:430px} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>全屏语音通话的空间感</h1>
+    <p>三版都保留右侧人物、底部字幕、退出与通话控制。请选择最接近你想要的沉浸方式。</p>
+  </header>
+  <main class="grid">
+    <section class="option a" data-choice="voice-a" onclick="toggleSelect(this)">
+      <div class="screen">
+        <div class="close">×</div><div class="state">澪 · 正在听</div><div class="timer">02:18</div>
+        <div class="wave"><i style="height:12px"></i><i style="height:30px"></i><i style="height:20px"></i><i style="height:40px"></i><i style="height:25px"></i><i style="height:14px"></i></div>
+        <img class="person" src="http://127.0.0.1:5173/src/assets/mio-companion.png" alt="" />
+        <div class="subtitle"><strong>澪</strong>嗯，我在听。你可以慢慢说，不用急着整理好。</div>
+        <div class="controls"><div class="control">麦</div><div class="control end">结束</div><div class="control">字</div></div>
+      </div>
+      <div class="copy"><h2>A. 暖色静室</h2><p>把通话变成独立、安静的陪伴空间。品牌最统一，留白最多，人物与字幕都清晰。</p><span class="tag">推荐</span></div>
+    </section>
+    <section class="option b" data-choice="voice-b" onclick="toggleSelect(this)">
+      <div class="screen">
+        <div class="close">×</div><div class="state">澪 · 正在回应</div><div class="timer">02:18</div>
+        <div class="wave"><i style="height:12px"></i><i style="height:30px"></i><i style="height:20px"></i><i style="height:40px"></i><i style="height:25px"></i><i style="height:14px"></i></div>
+        <img class="person" src="http://127.0.0.1:5173/src/assets/mio-companion.png" alt="" />
+        <div class="subtitle"><strong>澪</strong>嗯，我在听。你可以慢慢说，不用急着整理好。</div>
+        <div class="controls"><div class="control">麦</div><div class="control end">结束</div><div class="control">字</div></div>
+      </div>
+      <div class="copy"><h2>B. 深色影院</h2><p>人物更突出，最有“通话模式”的仪式感，但与日常聊天页反差较大，也更像娱乐产品。</p><span class="tag">更沉浸</span></div>
+    </section>
+    <section class="option c" data-choice="voice-c" onclick="toggleSelect(this)">
+      <div class="screen">
+        <div class="desk"><div class="desk-line"></div><div class="desk-line" style="width:88%"></div><div class="desk-line" style="width:56%"></div><div class="desk-line" style="width:76%;margin-top:26px"></div></div>
+        <div class="close">×</div><div class="state">澪 · 项目陪伴</div><div class="timer">02:18</div>
+        <img class="person" src="http://127.0.0.1:5173/src/assets/mio-companion.png" alt="" />
+        <div class="subtitle"><strong>澪</strong>嗯，我在听。你可以慢慢说，不用急着整理好。</div>
+        <div class="controls"><div class="control">麦</div><div class="control end">结束</div><div class="control">字</div></div>
+      </div>
+      <div class="copy"><h2>C. 桌面陪伴</h2><p>像参考图一样保留项目内容背景，适合边工作边聊，但容易分散注意力并带来隐私展示问题。</p><span class="tag">更贴参考图</span></div>
+    </section>
+  </main>
+</body>
+</html>

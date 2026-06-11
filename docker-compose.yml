@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mio
+      POSTGRES_USER: mio
+      POSTGRES_PASSWORD: mio
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mio -d mio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - mio_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  mio_postgres_data:
+

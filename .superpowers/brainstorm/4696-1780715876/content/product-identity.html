@@ -1,0 +1,98 @@
+<style>
+  .identity-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:24px; }
+  .identity-card { min-height:440px; padding:0; overflow:hidden; border-radius:24px; }
+  .identity-card .card-image { height:300px; padding:14px; background:#111820; }
+  .mini-app { height:100%; display:grid; grid-template-columns:46px 1fr; overflow:hidden; border:1px solid rgba(255,255,255,.12); border-radius:15px; }
+  .mini-nav { padding:13px 9px; background:#17212b; display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .mini-dot { width:24px; height:24px; border-radius:8px; background:#33414e; }
+  .mini-dot.active { background:#d98f88; }
+  .mini-main { position:relative; padding:16px; overflow:hidden; }
+  .mini-title { width:46%; height:9px; border-radius:9px; background:#d9e0e5; margin-bottom:14px; }
+  .bubble { width:70%; padding:9px; border-radius:12px; margin:8px 0; background:rgba(255,255,255,.1); }
+  .bubble.right { margin-left:auto; background:rgba(91,154,156,.24); }
+  .line { height:5px; margin:5px 0; border-radius:5px; background:rgba(255,255,255,.34); }
+  .warm .mini-main { background:linear-gradient(145deg,#fff8f3,#f1f6f5); }
+  .warm .mini-title,.warm .line { background:#655c59; opacity:.55; }
+  .warm .bubble { background:#fff; border:1px solid #eadbd1; }
+  .warm .bubble.right { background:#dcebea; }
+  .portrait { position:absolute; right:-10px; bottom:0; width:90px; height:150px; border-radius:80px 0 0 0; background:linear-gradient(150deg,#f4d6c9,#694f4b); opacity:.8; }
+  .dual .mini-main { background:#f6f3ef; display:grid; grid-template-columns:1.1fr .9fr; gap:8px; }
+  .dual-pane { border-radius:12px; padding:10px; background:#fffaf6; border:1px solid #eadfd7; }
+  .dual-pane.dark { background:#17212b; border-color:#2c3946; }
+  .trace-row { height:19px; border-bottom:1px solid rgba(255,255,255,.09); position:relative; }
+  .trace-row:after { content:""; position:absolute; left:2px; top:7px; width:65%; height:4px; border-radius:4px; background:#6e7c88; }
+  .work .mini-main { background:#111820; display:grid; grid-template-rows:52% 1fr; gap:8px; }
+  .graph { border-radius:12px; border:1px solid #33414e; background:radial-gradient(circle at 35% 45%,rgba(89,170,175,.35),transparent 4%),radial-gradient(circle at 65% 30%,rgba(215,143,136,.32),transparent 4%),linear-gradient(135deg,#15212b,#10161d); }
+  .modules { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .module { border:1px solid #33414e; border-radius:9px; background:#19232d; }
+  .recommend { display:inline-block; margin-left:8px; padding:3px 8px; border-radius:999px; background:#dff0eb; color:#316a5e; font-size:11px; font-weight:700; vertical-align:middle; }
+  @media(max-width:900px){.identity-grid{grid-template-columns:1fr}.identity-card{min-height:auto}}
+</style>
+
+<h2>Mio 应该先让人感受到什么？</h2>
+<p class="subtitle">选择主身份。技术能力仍会完整保留，但入口层级和视觉气质会不同。</p>
+
+<div class="cards identity-grid">
+  <div class="card identity-card" data-choice="companion-first" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mini-app warm">
+        <div class="mini-nav">
+          <div class="mini-dot active"></div><div class="mini-dot"></div><div class="mini-dot"></div><div class="mini-dot"></div>
+        </div>
+        <div class="mini-main">
+          <div class="mini-title"></div>
+          <div class="bubble"><div class="line"></div><div class="line" style="width:70%"></div></div>
+          <div class="bubble right"><div class="line"></div><div class="line" style="width:55%"></div></div>
+          <div class="bubble"><div class="line"></div><div class="line" style="width:75%"></div><div class="line" style="width:45%"></div></div>
+          <div class="portrait"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 陪伴优先</h3>
+      <p>聊天与澪的存在感占据主舞台。Memory、RAG、Trace 收进二级页面，温暖、克制、最像真正会每天打开的产品。</p>
+    </div>
+  </div>
+
+  <div class="card identity-card" data-choice="dual-mode" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mini-app dual">
+        <div class="mini-nav">
+          <div class="mini-dot active"></div><div class="mini-dot"></div><div class="mini-dot"></div><div class="mini-dot"></div>
+        </div>
+        <div class="mini-main">
+          <div class="dual-pane">
+            <div class="mini-title"></div>
+            <div class="bubble"><div class="line"></div><div class="line" style="width:65%"></div></div>
+            <div class="bubble right"><div class="line"></div></div>
+          </div>
+          <div class="dual-pane dark">
+            <div class="trace-row"></div><div class="trace-row"></div><div class="trace-row"></div><div class="trace-row"></div><div class="trace-row"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 双模式 <span class="recommend">推荐</span></h3>
+      <p>默认是安静的陪伴界面，开启「Focus / Debug」后侧栏展开执行链路。兼顾真实使用与面试演示，但需要严格控制技术面板的侵入感。</p>
+    </div>
+  </div>
+
+  <div class="card identity-card" data-choice="agent-workbench" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mini-app work">
+        <div class="mini-nav">
+          <div class="mini-dot active"></div><div class="mini-dot"></div><div class="mini-dot"></div><div class="mini-dot"></div>
+        </div>
+        <div class="mini-main">
+          <div class="graph"></div>
+          <div class="modules"><div class="module"></div><div class="module"></div><div class="module"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Agent 工作台优先</h3>
+      <p>LangGraph、RAG、Memory、Tools 成为第一视觉中心。作品集冲击力强，但容易削弱“女友陪伴是第一身份”的产品原则。</p>
+    </div>
+  </div>
+</div>

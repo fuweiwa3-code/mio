@@ -1,0 +1,32 @@
+# macOS and editor-local files
+.DS_Store
+.claude/settings.local.json
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+*.db
+dist/
+build/
+*.egg-info/
+
+# Node.js
+node_modules/
+frontend/dist/
+coverage/
+
+# Local design-session runtime state
+.superpowers/**/state/

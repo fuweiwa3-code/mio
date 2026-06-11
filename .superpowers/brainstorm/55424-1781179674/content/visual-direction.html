@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mio 视觉方向对比</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #292327;
+      background: #ebe7e5;
+      font-family: "Avenir Next", "PingFang SC", sans-serif;
+    }
+    header {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 34px 36px 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -.035em; }
+    header p { margin: 0; color: #746b70; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 18px 36px 48px;
+      gap: 22px;
+    }
+    .option {
+      overflow: hidden;
+      border: 1px solid rgba(53, 41, 48, .12);
+      border-radius: 24px;
+      background: rgba(255,255,255,.72);
+      box-shadow: 0 20px 60px rgba(55,42,49,.09);
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .option:hover { transform: translateY(-3px); box-shadow: 0 26px 70px rgba(55,42,49,.14); }
+    .option.selected { outline: 3px solid #5b4652; outline-offset: 3px; }
+    .preview { height: 500px; padding: 16px; }
+    .app {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      height: 100%;
+      overflow: hidden;
+      border: 1px solid rgba(44,34,39,.1);
+      border-radius: 17px;
+      box-shadow: 0 14px 35px rgba(52,39,46,.1);
+    }
+    .side { padding: 20px 11px; border-right: 1px solid rgba(55,42,49,.1); }
+    .logo { width: 35px; height: 35px; margin: 0 auto 24px; border-radius: 11px; }
+    .nav { height: 32px; margin: 7px 0; border-radius: 9px; opacity: .75; }
+    .main { display: grid; grid-template-rows: 50px 1fr 88px; min-width: 0; }
+    .top { display:flex; align-items:center; justify-content:space-between; padding:0 18px; border-bottom:1px solid rgba(55,42,49,.08); }
+    .status { width: 78px; height: 9px; border-radius: 99px; opacity:.55; }
+    .top-actions { display:flex; gap:7px; }
+    .pill { width: 54px; height: 24px; border-radius:99px; }
+    .circle { width:24px; height:24px; border-radius:50%; }
+    .chat { position:relative; padding:34px 30px; overflow:hidden; }
+    .line { height:9px; margin-bottom:8px; border-radius:99px; opacity:.42; }
+    .bubble { width:68%; margin-bottom:22px; padding:14px 16px; border-radius:15px; }
+    .bubble.user { width:54%; margin-left:auto; }
+    .figure {
+      position:absolute; right:14px; bottom:-28px; width:105px; height:230px;
+      border-radius:55% 55% 18% 18%; opacity:.48; filter:saturate(.7);
+    }
+    .composer { margin: 12px 22px 18px; border-radius:17px; }
+    .copy { padding: 20px 22px 24px; }
+    .copy h2 { margin:0 0 8px; font-size:18px; }
+    .copy p { min-height:64px; margin:0; color:#756b70; font-size:13px; line-height:1.65; }
+    .tag { display:inline-block; margin-top:14px; padding:6px 10px; border-radius:99px; font-size:11px; font-weight:700; }
+
+    .a .preview { background:#f3efed; }
+    .a .app { background:#f7f3f1; }
+    .a .side { background:#ece6e4; }
+    .a .logo, .a .pill, .a .bubble.user { background:#4b3541; }
+    .a .nav { background:#dcd3d2; }
+    .a .nav.active { background:#d2c1c6; box-shadow:inset 3px 0 #9d667d; }
+    .a .status, .a .line { background:#75666d; }
+    .a .bubble { background:#fffdfb; border:1px solid #e2d9d7; }
+    .a .figure { background:linear-gradient(#d8b8c5,#806574); }
+    .a .composer { background:#fffdfb; border:1px solid #ded3d2; box-shadow:0 10px 26px rgba(70,50,60,.1); }
+    .a .tag { color:#fff; background:#4b3541; }
+
+    .b .preview { background:#ececef; }
+    .b .app { background:#f7f7f8; }
+    .b .side { background:#e5e5e9; }
+    .b .logo, .b .pill, .b .bubble.user { background:#4a465d; }
+    .b .nav { background:#d7d6dd; }
+    .b .nav.active { background:#cccad7; box-shadow:inset 3px 0 #77708f; }
+    .b .status, .b .line { background:#676471; }
+    .b .bubble { background:#fff; border:1px solid #dfdee4; }
+    .b .figure { background:linear-gradient(#c3c0d1,#6b667e); }
+    .b .composer { background:#fff; border:1px solid #dad9df; box-shadow:0 10px 26px rgba(55,53,70,.09); }
+    .b .tag { color:#fff; background:#4a465d; }
+
+    .c .preview { background:#f5eee9; }
+    .c .app { background:#fcf8f4; }
+    .c .side { background:#efe3dc; }
+    .c .logo, .c .pill, .c .bubble.user { background:#744b59; }
+    .c .nav { background:#eadbd5; }
+    .c .nav.active { background:#e5ccc9; box-shadow:inset 3px 0 #c77f86; }
+    .c .status, .c .line { background:#826b70; }
+    .c .bubble { background:#fffaf6; border:1px solid #eadbd3; }
+    .c .figure { background:linear-gradient(#e6bcc0,#9b6671); }
+    .c .composer { background:#fffaf6; border:1px solid #e7d5cd; box-shadow:0 10px 26px rgba(90,57,68,.11); }
+    .c .tag { color:#fff; background:#744b59; }
+    @media (max-width: 1000px) { .grid { grid-template-columns:1fr; } .preview { height:420px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mio 聊天页视觉方向</h1>
+    <p>点击你最希望长期使用、也最适合作品集展示的一版。</p>
+  </header>
+  <main class="grid">
+    <section class="option a" data-choice="a" onclick="toggleSelect(this)">
+      <div class="preview">
+        <div class="app">
+          <aside class="side"><div class="logo"></div><div class="nav active"></div><div class="nav"></div><div class="nav"></div></aside>
+          <div class="main">
+            <div class="top"><div class="status"></div><div class="top-actions"><div class="pill"></div><div class="circle"></div></div></div>
+            <div class="chat"><div class="bubble"><div class="line" style="width:80%"></div><div class="line" style="width:55%"></div></div><div class="bubble user"><div class="line" style="width:75%;background:#fff"></div></div><div class="bubble"><div class="line" style="width:88%"></div><div class="line" style="width:65%"></div></div><div class="figure"></div></div>
+            <div class="composer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="copy"><h2>A. 暖梅精修</h2><p>保留现有品牌识别，减少 40% 装饰和阴影，用更稳的排版、实体表面和留白提升成熟度。</p><span class="tag">推荐</span></div>
+    </section>
+
+    <section class="option b" data-choice="b" onclick="toggleSelect(this)">
+      <div class="preview">
+        <div class="app">
+          <aside class="side"><div class="logo"></div><div class="nav active"></div><div class="nav"></div><div class="nav"></div></aside>
+          <div class="main">
+            <div class="top"><div class="status"></div><div class="top-actions"><div class="pill"></div><div class="circle"></div></div></div>
+            <div class="chat"><div class="bubble"><div class="line" style="width:80%"></div><div class="line" style="width:55%"></div></div><div class="bubble user"><div class="line" style="width:75%;background:#fff"></div></div><div class="bubble"><div class="line" style="width:88%"></div><div class="line" style="width:65%"></div></div><div class="figure"></div></div>
+            <div class="composer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="copy"><h2>B. 冷灰紫专业</h2><p>更像开发者工具和成熟 SaaS，理性、克制，但会削弱澪独有的温度与关系感。</p><span class="tag">更工具化</span></div>
+    </section>
+
+    <section class="option c" data-choice="c" onclick="toggleSelect(this)">
+      <div class="preview">
+        <div class="app">
+          <aside class="side"><div class="logo"></div><div class="nav active"></div><div class="nav"></div><div class="nav"></div></aside>
+          <div class="main">
+            <div class="top"><div class="status"></div><div class="top-actions"><div class="pill"></div><div class="circle"></div></div></div>
+            <div class="chat"><div class="bubble"><div class="line" style="width:80%"></div><div class="line" style="width:55%"></div></div><div class="bubble user"><div class="line" style="width:75%;background:#fff"></div></div><div class="bubble"><div class="line" style="width:88%"></div><div class="line" style="width:65%"></div></div><div class="figure"></div></div>
+            <div class="composer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="copy"><h2>C. 奶油玫瑰陪伴</h2><p>亲密感最强，氛围柔和、消费者产品感明显，但容易偏甜，技术作品集的专业气质略弱。</p><span class="tag">更情绪化</span></div>
+    </section>
+  </main>
+</body>
+</html>
