@@ -1,3 +1,5 @@
+"""Conversation management service — drives turns, streaming, and persistence."""
+
 import base64
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -12,6 +14,7 @@ from mio.agent.graph import AgentGraph, AgentState, stream_agent_events
 from mio.api.errors import AppError
 from mio.api.schemas import MessageCreate
 from mio.chat.registry import ActiveRequestRegistry
+from mio.classification.base import MessageClassifier
 from mio.db.models import (
     AgentTrace,
     CompanionProfile,
@@ -41,6 +44,7 @@ class ConversationService:
         demo_ids: DemoIds,
         registry: ActiveRequestRegistry,
         provider: ChatModelProvider,
+        classifier: MessageClassifier,
         agent_graph: AgentGraph,
         model: str,
         context_message_limit: int,
@@ -49,6 +53,7 @@ class ConversationService:
         self._demo_ids = demo_ids
         self._registry = registry
         self._provider = provider
+        self._classifier = classifier
         self._agent_graph = agent_graph
         self._model = model
         self._context_message_limit = context_message_limit
@@ -203,7 +208,9 @@ class ConversationService:
             await self._registry.release(conversation_id, request_id)
             raise
 
-    async def _load_agent_state(self, turn: TurnContext) -> AgentState:
+    async def _load_agent_state(
+        self, turn: TurnContext, user_text: str
+    ) -> AgentState:
         async with self._session_factory() as session:
             profile = await session.get(CompanionProfile, self._demo_ids.companion_id)
             if profile is None:
@@ -226,6 +233,7 @@ class ConversationService:
             ]
             return {
                 "request_id": turn.request_id,
+                "current_user_text": user_text,
                 "profile": {
                     "name": profile.name,
                     "relationship_type": profile.relationship_type,
@@ -236,6 +244,10 @@ class ConversationService:
                 "model": self._model,
                 "display_text": "",
                 "status": "pending",
+                "node_summary": {},
+                "classification_status": "success",
+                "classification_error_code": "",
+                "route": "",
             }
 
     async def _update_streaming_text(
@@ -261,6 +273,8 @@ class ConversationService:
         started_at: float,
         error_code: str | None = None,
         error_message: str | None = None,
+        node_summary: dict[str, object] | None = None,
+        route: str | None = None,
     ) -> None:
         async with self._session_factory() as session:
             message = await session.get(Message, turn.assistant_message_id)
@@ -275,14 +289,19 @@ class ConversationService:
                 trace.duration_ms = int((perf_counter() - started_at) * 1000)
                 trace.error_stage = "stream_llm" if error_code else None
                 trace.error_code = error_code
-                trace.node_summary = {
-                    "load_context": "completed",
-                    "build_persona_prompt": "completed",
-                    "stream_llm": status.value,
-                    "finalize_response": (
-                        "completed" if status == MessageStatus.completed else "skipped"
-                    ),
-                }
+                if node_summary:
+                    trace.node_summary = node_summary
+                else:
+                    trace.node_summary = {
+                        "load_context": "completed",
+                        "build_persona_prompt": "completed",
+                        "stream_llm": status.value,
+                        "finalize_response": (
+                            "completed"
+                            if status == MessageStatus.completed
+                            else "skipped"
+                        ),
+                    }
             await session.commit()
 
     async def stream_turn(
@@ -292,6 +311,14 @@ class ConversationService:
         started_at = perf_counter()
         text = ""
         terminal = False
+        final_node_summary: dict[str, object] = {}
+        final_route: str | None = None
+
+        # Register the cancel Event BEFORE yielding message.started.
+        # This eliminates the race where cancel() arrives between
+        # message.started and classify()'s Event registration.
+        await self._classifier.prepare(turn.request_id)
+
         yield {
             "event": "message.started",
             "request_id": turn.request_id,
@@ -299,15 +326,33 @@ class ConversationService:
             "trace_id": turn.trace_id,
         }
         try:
-            state = await self._load_agent_state(turn)
+            # Load user text by exact ID from the turn context.
+            async with self._session_factory() as session:
+                user_msg = await session.get(Message, turn.user_message_id)
+                if (
+                    user_msg is None
+                    or user_msg.conversation_id != turn.conversation_id
+                    or user_msg.role != MessageRole.user
+                ):
+                    raise AppError(
+                        500,
+                        "user_message_not_found",
+                        "无法读取当前用户消息。",
+                    )
+                user_text = user_msg.display_text
+
+            state = await self._load_agent_state(turn, user_text)
             async for event in stream_agent_events(self._agent_graph, state):
                 if await self._registry.is_cancelled(turn.request_id):
+                    await self._classifier.cancel(turn.request_id)
                     await self._provider.cancel(turn.request_id)
                     await self._finish(
                         turn,
                         MessageStatus.cancelled,
                         text,
                         started_at,
+                        node_summary=final_node_summary or None,
+                        route=final_route,
                     )
                     terminal = True
                     yield {
@@ -331,17 +376,81 @@ class ConversationService:
                     }
                 elif event["event"] == "agent.completed":
                     text = event["display_text"]
+                    final_node_summary = event.get("node_summary", {})
+                    final_route = event.get("route")
 
-            await self._finish(turn, MessageStatus.completed, text, started_at)
-            terminal = True
-            yield {
-                "event": "message.completed",
-                "request_id": turn.request_id,
-                "message_id": turn.assistant_message_id,
-                "trace_id": turn.trace_id,
-                "display_text": text,
-                "speech_text": None,
-            }
+            # Re-check cancel after graph completes.  When the classifier
+            # was cancelled mid-flight the graph finishes with a fallback
+            # classification and persona route, but the assistant message
+            # must still be persisted as *cancelled*, not completed.
+            if await self._registry.is_cancelled(turn.request_id):
+                await self._finish(
+                    turn,
+                    MessageStatus.cancelled,
+                    text,
+                    started_at,
+                    node_summary=final_node_summary or None,
+                    route=final_route,
+                )
+                terminal = True
+                yield {
+                    "event": "message.cancelled",
+                    "request_id": turn.request_id,
+                    "message_id": turn.assistant_message_id,
+                    "trace_id": turn.trace_id,
+                    "display_text": text,
+                    "speech_text": None,
+                }
+                return
+
+            # Check for provider error in node_summary
+            provider_error = False
+            if final_node_summary:
+                stream_llm_info = final_node_summary.get("stream_llm", {})
+                if isinstance(stream_llm_info, dict) and stream_llm_info.get("status") == "failed":
+                    provider_error = True
+
+            if provider_error:
+                await self._finish(
+                    turn,
+                    MessageStatus.failed,
+                    text,
+                    started_at,
+                    error_code="provider_error",
+                    error_message="回复生成失败，已保留你的消息。",
+                    node_summary=final_node_summary or None,
+                    route=final_route,
+                )
+                terminal = True
+                yield {
+                    "event": "message.failed",
+                    "request_id": turn.request_id,
+                    "message_id": turn.assistant_message_id,
+                    "trace_id": turn.trace_id,
+                    "display_text": text,
+                    "speech_text": None,
+                    "code": "provider_error",
+                    "message": "回复生成失败，已保留你的消息。",
+                    "details": {},
+                }
+            else:
+                await self._finish(
+                    turn,
+                    MessageStatus.completed,
+                    text,
+                    started_at,
+                    node_summary=final_node_summary or None,
+                    route=final_route,
+                )
+                terminal = True
+                yield {
+                    "event": "message.completed",
+                    "request_id": turn.request_id,
+                    "message_id": turn.assistant_message_id,
+                    "trace_id": turn.trace_id,
+                    "display_text": text,
+                    "speech_text": None,
+                }
         except Exception as exc:
             await self._finish(
                 turn,
@@ -350,6 +459,8 @@ class ConversationService:
                 started_at,
                 error_code="provider_error",
                 error_message=str(exc),
+                node_summary=final_node_summary or None,
+                route=final_route,
             )
             terminal = True
             yield {
@@ -366,18 +477,24 @@ class ConversationService:
         finally:
             try:
                 if not terminal:
+                    await self._classifier.cancel(turn.request_id)
                     await self._provider.cancel(turn.request_id)
                     await self._finish(
                         turn,
                         MessageStatus.cancelled,
                         text,
                         started_at,
+                        node_summary=final_node_summary or None,
+                        route=final_route,
                     )
             finally:
+                # Release classifier state BEFORE registry release.
+                await self._classifier.release(turn.request_id)
                 await self._registry.release(turn.conversation_id, turn.request_id)
 
     async def cancel(self, request_id: UUID) -> bool:
         cancelled = await self._registry.cancel(request_id)
         if cancelled:
+            await self._classifier.cancel(request_id)
             await self._provider.cancel(request_id)
         return cancelled

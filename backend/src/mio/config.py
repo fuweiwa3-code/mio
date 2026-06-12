@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     mock_chunk_delay_ms: int = Field(default=0, ge=0)
     cors_origins: list[str] = ["http://localhost:5173"]
     context_message_limit: int = Field(default=20, ge=1, le=100)
+    classifier_provider: Literal["mock", "openai_compatible"] = "mock"
+    classifier_model: str = "mock-classifier"
+    classifier_base_url: str = ""
+    classifier_api_key: str = ""
 
 
 @lru_cache

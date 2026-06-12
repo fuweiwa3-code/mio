@@ -3,6 +3,7 @@ from uuid import UUID
 
 from mio.agent.graph import create_agent_graph
 from mio.api.schemas import MessageCreate
+from mio.classification.mock import MockMessageClassifier
 from mio.llm.base import ChatMessage, ChatModelProvider, ModelOptions
 from mio.services.conversations import ConversationService
 
@@ -32,12 +33,14 @@ async def test_provider_failure_emits_failed_event_and_keeps_user_message(
     created = await client.post("/api/v1/conversations", json={})
     conversation_id = UUID(created.json()["id"])
     provider = FailingProvider()
+    classifier = MockMessageClassifier()
     service = ConversationService(
         session_factory=app.state.session_factory,
         demo_ids=app.state.demo_ids,
         registry=app.state.registry,
         provider=provider,
-        agent_graph=create_agent_graph(provider),
+        classifier=classifier,
+        agent_graph=create_agent_graph(provider, classifier),
         model="failing-model",
         context_message_limit=20,
     )

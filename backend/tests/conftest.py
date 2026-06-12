@@ -16,6 +16,8 @@ def settings(tmp_path) -> Settings:
         llm_provider="mock",
         llm_model="mock-mio",
         mock_chunk_delay_ms=0,
+        classifier_provider="mock",
+        classifier_model="mock-classifier",
     )
 
 
@@ -31,4 +33,3 @@ async def client(app) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
         yield test_client
-

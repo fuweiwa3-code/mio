@@ -1,3 +1,5 @@
+"""FastAPI application factory and lifecycle management."""
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from uuid import uuid4
@@ -12,6 +14,7 @@ from mio.agent.graph import create_agent_graph
 from mio.api.errors import install_error_handlers
 from mio.api.routes import api_router, health_router
 from mio.chat.registry import ActiveRequestRegistry
+from mio.classification.factory import create_message_classifier
 from mio.config import Settings, get_settings
 from mio.db.base import Base
 from mio.db.seed import seed_demo_data
@@ -27,8 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         resolved_settings.database_url
     )
     provider = create_chat_model_provider(resolved_settings)
+    classifier = create_message_classifier(resolved_settings)
     registry = ActiveRequestRegistry()
-    agent_graph = create_agent_graph(provider)
+    agent_graph = create_agent_graph(provider, classifier)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -47,11 +51,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             demo_ids=demo_ids,
             registry=registry,
             provider=provider,
+            classifier=classifier,
             agent_graph=agent_graph,
             model=resolved_settings.llm_model,
             context_message_limit=resolved_settings.context_message_limit,
         )
         yield
+        await classifier.aclose()
         await provider.aclose()
         await engine.dispose()
 
