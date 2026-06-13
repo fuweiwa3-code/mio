@@ -22,6 +22,7 @@ from mio.db.session import create_engine_and_session_factory
 from mio.llm.factory import create_chat_model_provider
 from mio.services.conversations import ConversationService
 from mio.services.recovery import recover_incomplete_generations
+from mio.services.traces import TraceService
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -55,6 +56,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             agent_graph=agent_graph,
             model=resolved_settings.llm_model,
             context_message_limit=resolved_settings.context_message_limit,
+        )
+        app.state.trace_service = TraceService(
+            session_factory=session_factory,
+            demo_user_id=demo_ids.user_id,
         )
         yield
         await classifier.aclose()

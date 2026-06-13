@@ -10,8 +10,8 @@
 |------|------|------|
 | 1 | 分类 Pydantic Schema + Mock 分类器 | ✅ 已完成 |
 | 2 | OpenAI-compatible 分类器 + 工厂 + LangGraph 路由 + Safety + Persona Prompt | ✅ 已完成 |
-| 3 | AgentTrace 分类字段增强 + Alembic 迁移 | 待实现 |
-| 4 | Trace 查询 API + 文档终稿 | 待实现 |
+| 3 | AgentTrace 分类字段增强 + Alembic 迁移 | ✅ 已完成 |
+| 4 | Trace 查询 API + 文档终稿 | ✅ 已完成 |
 
 ---
 
@@ -440,7 +440,7 @@ message.failed
 # 完整测试套件
 cd backend
 .venv\Scripts\python.exe -m pytest -q --durations=10
-# 149 passed, 414 warnings in 6.50s
+# 169 passed, 586 warnings in 11.85s
 
 # test_cancel_and_isolation.py 单独
 .venv\Scripts\python.exe -m pytest tests/test_cancel_and_isolation.py -q --durations=10
@@ -470,6 +470,8 @@ cd backend
 | test_runtime_behaviors.py | 2 | Registry 和 Recovery |
 | test_health_and_profile.py | 2 | 健康检查和 Profile |
 | test_config.py | 1 | 配置路径 |
+| test_trace_persistence.py | 20 | Trace 分类字段持久化、历史兼容、迁移结构 |
+| test_traces_api.py | 30 | Trace API 列表/详情、游标分页、owner 隔离、脱敏、安全验收 |
 
 ### 第二阶段修复记录（验收后）
 
@@ -515,10 +517,10 @@ cd backend
 
 | 内容 | 阶段 |
 |------|------|
-| AgentTrace 分类字段（数据库列） | 3 |
-| Alembic 迁移文件 | 3 |
-| Trace 查询 API（单条 + 列表游标分页） | 4 |
-| 开发文档和学习文档终稿更新 | 4 |
+| AgentTrace 分类字段（数据库列） | ✅ 已完成（Phase 3） |
+| Alembic 迁移文件 | ✅ 已完成（Phase 3） |
+| Trace 查询 API（单条 + 列表游标分页） | ✅ 已完成（Phase 4A） |
+| 开发文档和学习文档终稿更新 | 4B |
 
 ---
 
@@ -534,23 +536,315 @@ cd backend
 
 ## 19. 第三阶段开始前应阅读
 
+> **注意**: Phase 3 已完成，以下信息供 Phase 4 参考。
+
 1. `docs/superpowers/specs/2026-06-12-m2-classification-safety-trace-design.md`——第 3.3 节 AgentTrace 增强和第 3.5 节 Alembic 迁移。
-2. `backend/src/mio/db/models.py`——AgentTrace 模型，第三阶段需要新增分类字段。
-3. `backend/src/mio/agent/graph.py`——当前图的 node_summary 结构，第三阶段写入 Trace。
-4. `backend/src/mio/services/conversations.py`——`_finish()` 方法，第三阶段需要写入分类字段。
-5. `backend/tests/test_graph_routing.py`——当前路由测试，第三阶段需要扩展 Trace 相关断言。
+2. `backend/src/mio/db/models.py`——AgentTrace 模型，Phase 3 已新增分类字段。
+3. `backend/src/mio/agent/graph.py`——当前图的 node_summary 结构。
+4. `backend/src/mio/services/conversations.py`——`_finish()` 方法，Phase 3 已写入分类字段。
+5. `backend/tests/test_trace_persistence.py`——Phase 3 新增的 20 条 Trace 持久化测试。
 
-### 第三阶段注意事项
+### 第三阶段完成事项
 
-- AgentTrace 新字段全部 nullable，保持向后兼容。
+- AgentTrace 新字段全部 nullable，已向后兼容。
 - `trace_schema_version` 默认 2，历史记录视为 v1。
-- Alembic 迁移文件不得在本机执行 `upgrade head`。
-- Trace 查询 API 只返回脱敏数据，不暴露 message content 或 prompt。
-- Cursor 分页使用与 messages 相同的 `(created_at, id)` 模式。
+- Alembic 迁移文件已生成，未在本机执行 `upgrade head`。
+- `_finish()` 已写入分类字段，`classification_error_code` 成功时存 NULL。
+- 取消场景 Trace 正常保存，分类字段可能为 fallback 值或 NULL。
 
 ---
 
-## 20. 换机继续开发清单
+## 20. 第三阶段完成范围
+
+### 20.1 新增文件
+
+| 文件 | 职责 |
+|------|------|
+| `backend/migrations/versions/20260613_0002_m2_classification_trace.py` | Alembic 迁移：为 `agent_traces` 添加分类字段 |
+| `backend/tests/test_trace_persistence.py` | 20 条 Trace 持久化测试 |
+
+### 20.2 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `backend/src/mio/db/models.py` | AgentTrace 新增 10 个分类字段 |
+| `backend/src/mio/services/conversations.py` | `_finish()` 写入分类字段，`stream_turn` 捕获分类数据，`start_turn` 设置 `trace_schema_version=2` |
+
+### 20.3 AgentTrace 最终字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `emotion_label` | VARCHAR(32) NULLABLE | 情绪标签：crisis, angry, anxious, sad, lonely, tired, happy, embarrassed, calm |
+| `emotion_confidence` | FLOAT NULLABLE | 情绪置信度 0.0~1.0 |
+| `intent_label` | VARCHAR(32) NULLABLE | 意图标签：unsafe, reminder, mixed, knowledge_qa, companion |
+| `intent_confidence` | FLOAT NULLABLE | 意图置信度 0.0~1.0 |
+| `risk_level` | VARCHAR(32) NULLABLE | 风险等级：none, low, medium, high |
+| `risk_confidence` | FLOAT NULLABLE | 风险置信度 0.0~1.0 |
+| `classification_status` | VARCHAR(32) NULLABLE | 分类状态：success, fallback |
+| `classification_error_code` | VARCHAR(100) NULLABLE | 错误码：classification_provider_error, classification_schema_invalid, classification_cancelled |
+| `route` | VARCHAR(32) NULLABLE | 路由：persona, safety |
+| `trace_schema_version` | INTEGER NULLABLE | Schema 版本：2（新 Trace），NULL（历史 v1 Trace） |
+
+所有分类字段 nullable，保证历史 Trace 可读取。枚举字段保存字符串，不使用 PostgreSQL ENUM。
+
+### 20.4 Alembic 迁移
+
+- **Revision**: `20260613_0002`
+- **Down revision**: `20260609_0001`
+- **upgrade**: 为 `agent_traces` 添加 10 个分类列
+- **downgrade**: 按逆序删除 10 个分类列
+- **未执行**: 未连接或修改云端 PostgreSQL
+
+### 20.5 Trace 写入流程
+
+```text
+stream_turn 开始
+  → classifier.prepare(request_id)
+  → yield message.started
+  → Graph 运行 → classify_message 节点
+      → 正常分类: classification_status="success", classification_error_code=None
+      → fallback:  classification_status="fallback", classification_error_code=错误码
+      → 取消:     classification_status="fallback", classification_error_code="classification_cancelled"
+  → agent.completed 事件 → 捕获 classification, classification_status, classification_error_code, route
+  → _finish() 写入 AgentTrace:
+      → classification dict 解析为 emotion/intent/risk 子字段
+      → classification_status, classification_error_code 直接写入
+      → route 写入
+      → trace_schema_version=2
+  → 完成/取消/失败
+```
+
+### 20.6 历史兼容策略
+
+| 场景 | 行为 |
+|------|------|
+| 新 Trace（Phase 3+） | `trace_schema_version=2`。分类字段根据执行进度写入；正常完成时有值，分类前取消或异常时允许为 NULL |
+| 历史 Trace（Phase 1/2） | 分类字段全部 NULL，`trace_schema_version=NULL`（应用层按 v1 理解） |
+| 读取 NULL 字段 | 不崩溃，返回 NULL/None |
+| `classification_error_code` | 成功时存 NULL（非空字符串），fallback 时存错误码 |
+
+### 20.7 测试结果
+
+```bash
+cd backend
+.venv\Scripts\python.exe -m pytest -q
+# 169 passed, 586 warnings in 11.85s
+
+.venv\Scripts\ruff.exe check .
+# All checks passed
+
+.venv\Scripts\mypy.exe src
+# Success: no issues found in 34 source files
+```
+
+新增 20 条测试（`test_trace_persistence.py`）：
+
+| 测试类 | 条数 | 覆盖范围 |
+|--------|------|----------|
+| TestNormalPersonaTraceFields | 3 | 正常 persona 路由的分类字段持久化 |
+| TestSafetyRouteTraceFields | 3 | crisis/unsafe/angry 路由的分类字段 |
+| TestProviderFailureFallbackTrace | 1 | Provider 错误 → fallback 字段 |
+| TestSchemaInvalidFallbackTrace | 1 | Schema 无效 → fallback 字段 |
+| TestCancelledTraceFields | 2 | 取消时 Trace 保存、显式取消 |
+| TestHistoricalNullTraceCompat | 2 | 历史 NULL 字段兼容、新 Trace 版本号 |
+| TestNodeSummaryStructured | 2 | persona/safety 节点摘要结构 |
+| TestProviderFailureEventRegression | 1 | Provider 失败事件回归 |
+| TestAlembicMigrationStructure | 5 | 迁移文件存在、upgrade/downgrade、revision 链 |
+
+### 20.8 环境说明
+
+- **云端 PostgreSQL**：未连接、未迁移。
+- **backend/.env**：未修改。
+- **Git 交付**：Phase 3 代码、测试和本文档更新待提交。
+- **Python 版本**：3.14（项目声明 3.12，使用 `--ignore-requires-python` 安装依赖，运行正常）。
+- **venv 路径**：`backend/.venv/`。
+
+---
+
+## 21. 第四阶段 A 完成范围（Trace 查询 API）
+
+### 21.1 新增文件
+
+| 文件 | 职责 |
+|------|------|
+| `backend/src/mio/services/traces.py` | TraceService 查询服务、node_summary 白名单脱敏、游标编解码、owner 隔离 |
+| `backend/tests/test_traces_api.py` | 21 条 Trace API 测试 |
+
+### 21.2 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `backend/src/mio/api/schemas.py` | 新增 `TraceResponse`、`TraceListResponse` Pydantic Schema |
+| `backend/src/mio/api/routes.py` | 新增 `GET /api/v1/traces`、`GET /api/v1/traces/{trace_id}` 路由、`TraceServiceDep` 依赖 |
+| `backend/src/mio/main.py` | 创建并挂载 `TraceService` 到 `app.state.trace_service` |
+
+### 21.3 API 契约
+
+#### GET /api/v1/traces
+
+列表查询，owner 隔离，游标分页。
+
+**请求参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `conversation_id` | UUID | None | 按对话 ID 过滤 |
+| `status` | str | None | 按状态过滤（completed/cancelled/failed 等） |
+| `limit` | int | 20 | 每页数量，范围 1~100 |
+| `cursor` | str | None | 分页游标（不透明，Base64 编码） |
+
+**响应：**
+
+```json
+{
+  "items": [TraceResponse, ...],
+  "next_cursor": "string | null"
+}
+```
+
+#### GET /api/v1/traces/{trace_id}
+
+单条详情，owner 隔离。
+
+**响应：** `TraceResponse`
+
+**错误码：**
+
+| HTTP | code | 场景 |
+|------|------|------|
+| 400 | `invalid_cursor` | 非法游标格式 |
+| 404 | `trace_not_found` | Trace 不存在或不属于当前 owner |
+| 422 | `validation_error` | 参数校验失败（limit 越界等） |
+
+### 21.4 TraceResponse 字段
+
+| 字段 | 类型 | 可空 | 说明 |
+|------|------|------|------|
+| `id` | UUID | 否 | Trace ID |
+| `conversation_id` | UUID | 否 | 所属对话 ID |
+| `request_id` | UUID | 否 | 请求 ID |
+| `status` | str | 否 | pending/streaming/completed/cancelled/failed |
+| `provider` | str | 否 | LLM Provider 名称 |
+| `model` | str | 否 | 模型标识 |
+| `duration_ms` | int | 是 | 耗时毫秒数 |
+| `error_stage` | str | 是 | 错误阶段 |
+| `error_code` | str | 是 | 错误码 |
+| `emotion_label` | str | 是 | 情绪标签 |
+| `emotion_confidence` | float | 是 | 情绪置信度 |
+| `intent_label` | str | 是 | 意图标签 |
+| `intent_confidence` | float | 是 | 意图置信度 |
+| `risk_level` | str | 是 | 风险等级 |
+| `risk_confidence` | float | 是 | 风险置信度 |
+| `classification_status` | str | 是 | 分类状态 |
+| `classification_error_code` | str | 是 | 分类错误码 |
+| `route` | str | 是 | 路由（persona/safety） |
+| `trace_schema_version` | int | 否 | Schema 版本，≥1（数据库 NULL→1） |
+| `node_summary` | dict[str, dict] | 否 | 脱敏后的节点摘要 |
+| `created_at` | datetime | 否 | 创建时间 |
+| `updated_at` | datetime | 否 | 更新时间 |
+
+### 21.5 Cursor 规则
+
+- 按 `created_at DESC, id DESC` 排序。
+- Cursor 同时编码 `created_at` 和 `id`，使用 `|` 分隔后 Base64 URL-safe 编码。
+- 非法 Cursor 统一返回 400 `invalid_cursor`。
+- 最后一页 `next_cursor` 为 `null`。
+
+### 21.6 Owner 隔离方式
+
+- 通过 `AgentTrace → Conversation.user_id` JOIN 校验归属。
+- 只返回 demo user 所属 Conversation 的 Trace。
+- 其他 owner 的 Trace 返回 404（非 403），避免信息泄露。
+
+### 21.7 node_summary 白名单与脱敏规则
+
+node_summary 对外统一为 `dict[str, dict[str, object]]`，每个节点只包含白名单字段：
+
+- `status`
+- `duration_ms`
+- `error_code`
+
+**非字典值处理：**
+
+- 已知状态字符串（`pending`/`streaming`/`completed`/`failed`/`cancelled`/`fallback`/`skipped`）→ 转换为 `{"status": <值>}`。
+- 未知字符串、list、tuple、数字、bool、嵌套对象 → 返回 `{}`。
+
+**白名单字段值校验：**
+
+- `status`：必须是已知状态字符串之一，否则丢弃。
+- `duration_ms`：必须是非负 `int`（`bool` 不算），否则丢弃。
+- `error_code`：仅当输入中存在该键时才处理。`None` → `None`；`str` → 截断至 100 字符；其他类型丢弃。
+
+**节点名过滤：**
+
+- 只保留匹配 `^[a-z][a-z0-9_]{0,63}$` 的节点名。
+- 其他节点名（大写开头、含特殊字符、超长）被静默丢弃。
+
+**trace_schema_version 契约：**
+
+- API 响应始终为 `int`（≥1），数据库 NULL 映射为 1。
+- Pydantic 字段定义：`trace_schema_version: int = Field(ge=1)`。
+
+### 21.8 历史 Trace 兼容
+
+- `trace_schema_version` 为 NULL 时，API 返回 `1`。
+- 分类字段全部为 NULL 时正常返回，不报错。
+
+### 21.9 测试覆盖（30 条）
+
+| 测试类 | 条数 | 覆盖范围 |
+|--------|------|----------|
+| TestTraceListNormalReturn | 1 | 列表正常返回、字段完整性 |
+| TestTraceListDescendingOrder | 1 | created_at DESC 排序 |
+| TestTraceListConversationFilter | 1 | conversation_id 过滤 |
+| TestTraceListStatusFilter | 2 | status 过滤、空结果 |
+| TestTraceListLimitValidation | 4 | limit 边界（0/1/100/101） |
+| TestTraceListCursorPagination | 1 | 多页游标无重复无遗漏 |
+| TestTraceListInvalidCursor | 2 | 非法 cursor 400 |
+| TestTraceDetailNormalReturn | 1 | 单条详情字段完整性 |
+| TestTraceDetailNotFound | 1 | 不存在 trace 404 |
+| TestTraceDetailOwnerIsolation | 2 | 其他 owner 返回 404、不在列表中 |
+| TestTraceDetailHistoricalNull | 1 | 历史 NULL 字段、version→1 |
+| TestTraceDetailNewTraceFields | 1 | 新 trace 分类/风险/路由字段 |
+| TestTraceNodeSummaryWhitelist | 1 | node_summary 只含白名单键 |
+| TestTraceDetailSensitiveDataFiltering | 1 | 敏感键不泄露（detail） |
+| TestTraceListSensitiveDataFiltering | 1 | 敏感键不泄露（list） |
+| TestSanitizeKnownStatusStrings | 1 | 历史字符串状态规范化为对象 |
+| TestSanitizeUnknownStrings | 1 | 未知字符串不泄露 |
+| TestSanitizeListValues | 1 | list 值不泄露 |
+| TestSanitizeMaliciousWhitelistValues | 1 | 白名单键中恶意值不泄露 |
+| TestSanitizeLegitimateFields | 1 | 合法字段正常返回 |
+| TestSanitizeBoolDuration | 1 | bool duration_ms 不返回 |
+| TestSanitizeIllegalNodeNames | 1 | 非法节点名不泄露 |
+| TestTraceSchemaContract | 2 | trace_schema_version 不允许 null、最小值为 1 |
+
+### 21.10 测试结果
+
+```bash
+cd backend
+.venv\Scripts\python.exe -m pytest -q
+# 199 passed, 855 warnings in 16.48s
+
+.venv\Scripts\ruff.exe check .
+# All checks passed
+
+.venv\Scripts\mypy.exe src
+# Success: no issues found in 35 source files
+
+.venv\Scripts\python.exe -m pytest tests/test_traces_api.py -q -W error::RuntimeWarning
+# 30 passed (no RuntimeWarning)
+```
+
+### 21.11 环境说明
+
+- **云端 PostgreSQL**：未连接、未迁移。
+- **backend/.env**：未修改。
+- **数据库 Schema**：未新增列，未生成 Alembic 迁移。
+- **Git 交付**：Phase 4A 代码和测试待提交。
+
+---
+
+## 22. 换机继续开发清单
 
 在能够访问云端 PostgreSQL 的电脑上继续开发时：
 
@@ -570,7 +864,7 @@ uv run mypy src
 
 开始 Phase 3 前必须确认：
 
-1. 工作区基线测试为 `149 passed`，Ruff 和 Mypy 通过。
+1. 工作区基线测试为 `169 passed`，Ruff 和 Mypy 通过。
 2. `backend/.env` 只在本机创建，不提交 API Key 或数据库凭据。
 3. 先生成并审查 AgentTrace Alembic 迁移，再连接云端 PostgreSQL。
 4. 执行迁移前备份数据库，并记录当前 `alembic current`。
@@ -582,5 +876,127 @@ uv run mypy src
 
 - M2 Phase 1：结构化分类 Schema 和确定性 Mock 分类器已完成。
 - M2 Phase 2：OpenAI-compatible 分类、LangGraph 条件路由、Safety、Persona 策略和完整取消生命周期已完成。
-- M2 Phase 3：未开始，云端数据库未修改。
-- M2 Phase 4：未开始。
+- M2 Phase 3：AgentTrace 分类字段、Alembic 迁移（20260613_0002）、Trace 写入、历史兼容已完成。
+- M2 Phase 4A：Trace 查询 API（列表+详情）、Pydantic Schema、node_summary 严格脱敏（非字典值归一化、白名单字段类型校验、节点名过滤）、owner 隔离、30 条测试已完成。
+- M2 Phase 4B-1：开发文档终稿更新已完成（chat-backend.md、frontend-backend-integration.md）。
+- M2 Phase 4B-2：学习文档终稿更新 + 完整总验收已完成。
+
+---
+
+## 23. Phase 4B 进度
+
+### 4B-1 已完成
+
+| 内容 | 状态 |
+|---|---|
+| `docs/development/chat-backend.md` 更新 | ✅ 已完成 |
+| `docs/development/frontend-backend-integration.md` 更新 | ✅ 已完成 |
+| 两份文档真实性验证 | ✅ 已完成 |
+| 未修改生产代码 | ✅ 确认 |
+| 未连接或修改云端 PostgreSQL | ✅ 确认 |
+| 未执行 Git commit/push | ✅ 确认 |
+
+**chat-backend.md 主要更新：**
+
+- 补充分类模块完整说明（枚举、Schema、Mock/OpenAI 分类器、工厂、配置）。
+- 更新 LangGraph 图为分类 + 条件路由版本。
+- 新增 Safety 与 Persona Prompt 边界说明。
+- 新增 AgentTrace 10 个 M2 字段说明。
+- 新增 trace_schema_version 契约（DB NULL→API 1，DB 2→API 2）。
+- 新增 Alembic 迁移 20260613_0002 说明。
+- 新增 Trace API（列表 + 详情、游标分页、owner 隔离）。
+- 新增 node_summary 白名单脱敏规则。
+- 更新目录、配置、测试基线和代码索引。
+- 修正旧文档中"情绪识别、意图分类、复杂 Safety 工作流"为已实现。
+
+**frontend-backend-integration.md 主要更新：**
+
+- 新增 Trace API 契约（列表 + 详情）。
+- 新增完整 TypeScript 类型：TraceResponse、TraceListResponse、TraceNodeSummary、CancelResponse。
+- 新增 trace_schema_version 说明（必须是 number，不允许 null）。
+- 新增 node_summary 类型定义。
+- 新增 AbortController 与服务端 Cancel 的区别说明。
+- 新增 owner 隔离对前端的表现（404）。
+- 新增 Cursor 规则（不透明、invalid_cursor 处理）。
+- 新增推荐联调顺序第 5 步：Trace 查询。
+- 更新错误码表（新增 trace_not_found、invalid_cursor）。
+- 修正旧文档中"Agent Trace 查询页面"为未实现。
+
+### 4B-2 已完成
+
+| 内容 | 状态 |
+|---|---|
+| `docs/learning/01-python-fastapi-chat-backend.md` 更新 | ✅ 已完成 |
+| 四份文档一致性检查 | ✅ 已完成 |
+| 完整总验收（pytest + Ruff + Mypy + Alembic） | ✅ 已完成 |
+| 未修改生产代码 | ✅ 确认 |
+| 未连接或修改云端 PostgreSQL | ✅ 确认 |
+| 未执行 Git commit/push | ✅ 确认 |
+
+**学习文档主要更新：**
+
+- 新增 27A~27X 共 24 个 M2 深入章节。
+- 覆盖 StrEnum、TypedDict、ABC、Pydantic strict/forbid/model_validator。
+- 覆盖 FastAPI Query/response_model/统一异常处理。
+- 覆盖 async generator、SSE、StreamingResponse。
+- 覆盖 SQLAlchemy AsyncSession、Alembic 命令。
+- 覆盖 Provider/Classifier ABC + 工厂模式。
+- 覆盖 OpenAI-compatible /chat/completions 和 JSON Schema 输出。
+- 覆盖 LangGraph 条件路由、stream writer。
+- 覆盖分类/Prompt/Safety 职责边界。
+- 覆盖 prepare→classify→cancel→release 生命周期。
+- 覆盖 asyncio.Event、Task、wait、gather。
+- 覆盖取消竞态及解决方案。
+- 覆盖 AgentTrace 字段、Schema v1/v2 兼容。
+- 覆盖 Trace API owner 隔离和 node_summary 脱敏。
+- 覆盖 Cursor 分页。
+- 覆盖 pytest fixture、AsyncClient、MockTransport。
+- 覆盖 M2 测试策略（分类 Schema、Graph 路由、取消、Task 泄漏、Trace 持久化、owner 越权、敏感数据）。
+- 新增 M2 常见错误和调试顺序。
+- 新增 M2 练习和自测题。
+- 更新学习目标和总结章节。
+
+**最终验收结果（2026-06-13）：**
+
+```bash
+cd backend
+.venv\Scripts\python.exe -m pytest -q --durations=10
+# 199 passed, 855 warnings in 17.29s
+
+.venv\Scripts\ruff.exe check .
+# All checks passed!
+
+.venv\Scripts\mypy.exe src
+# Success: no issues found in 35 source files
+
+.venv\Scripts\python.exe -m alembic heads
+# 20260613_0002 (head)
+
+.venv\Scripts\python.exe -m alembic history
+# 20260609_0001 -> 20260613_0002 (head), Add classification trace fields to agent_traces.
+# <base> -> 20260609_0001, Create initial chat tables.
+```
+
+### M2 完整验收状态
+
+| 验收项 | 结果 |
+|---|---|
+| pytest | ✅ 199 passed |
+| Ruff | ✅ All checks passed |
+| Mypy | ✅ 35 source files, no issues |
+| Alembic head | ✅ 20260613_0002 |
+| 文档一致性 | ✅ 12 项全部通过 |
+| 未修改生产代码 | ✅ 确认 |
+| 未连接云端 PostgreSQL | ✅ 确认 |
+| 未执行 Git commit/push | ✅ 确认 |
+
+### 剩余交接事项
+
+| 内容 | 说明 |
+|---|---|
+| 执行云端 PostgreSQL 迁移 | `alembic upgrade head` 在有连接的机器上执行 |
+| Git commit/push | Phase 3/4 代码、测试和文档提交 |
+
+### 下一里程碑
+
+待规划。

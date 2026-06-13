@@ -140,3 +140,17 @@ class AgentTrace(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     node_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
 
+    # M2 Phase 3: classification trace fields (all nullable for historical compat)
+    emotion_label: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    emotion_confidence: Mapped[float | None] = mapped_column(nullable=True)
+    intent_label: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    intent_confidence: Mapped[float | None] = mapped_column(nullable=True)
+    risk_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    risk_confidence: Mapped[float | None] = mapped_column(nullable=True)
+    classification_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    classification_error_code: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
+    )
+    route: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    trace_schema_version: Mapped[int | None] = mapped_column(nullable=True)
+

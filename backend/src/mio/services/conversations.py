@@ -194,6 +194,7 @@ class ConversationService:
                     provider=self._provider.name,
                     model=self._model,
                     node_summary={},
+                    trace_schema_version=2,
                 )
                 session.add_all([user_message, assistant_message, trace])
                 await session.commit()
@@ -275,6 +276,9 @@ class ConversationService:
         error_message: str | None = None,
         node_summary: dict[str, object] | None = None,
         route: str | None = None,
+        classification: dict[str, object] | None = None,
+        classification_status: str | None = None,
+        classification_error_code: str | None = None,
     ) -> None:
         async with self._session_factory() as session:
             message = await session.get(Message, turn.assistant_message_id)
@@ -302,6 +306,42 @@ class ConversationService:
                             else "skipped"
                         ),
                     }
+                # Write classification trace fields
+                if classification:
+                    emotion = classification.get("emotion")
+                    intent = classification.get("intent")
+                    risk = classification.get("risk")
+                    trace.emotion_label = (
+                        emotion.get("label") if isinstance(emotion, dict) else None
+                    )
+                    trace.emotion_confidence = (
+                        emotion.get("confidence")
+                        if isinstance(emotion, dict)
+                        else None
+                    )
+                    trace.intent_label = (
+                        intent.get("label") if isinstance(intent, dict) else None
+                    )
+                    trace.intent_confidence = (
+                        intent.get("confidence")
+                        if isinstance(intent, dict)
+                        else None
+                    )
+                    trace.risk_level = (
+                        risk.get("level") if isinstance(risk, dict) else None
+                    )
+                    trace.risk_confidence = (
+                        risk.get("confidence")
+                        if isinstance(risk, dict)
+                        else None
+                    )
+                trace.classification_status = classification_status
+                # Normalize empty string to None for cleaner DB storage
+                trace.classification_error_code = (
+                    classification_error_code or None
+                )
+                trace.route = route
+                trace.trace_schema_version = 2
             await session.commit()
 
     async def stream_turn(
@@ -313,6 +353,9 @@ class ConversationService:
         terminal = False
         final_node_summary: dict[str, object] = {}
         final_route: str | None = None
+        final_classification: dict[str, object] | None = None
+        final_classification_status: str | None = None
+        final_classification_error_code: str | None = None
 
         # Register the cancel Event BEFORE yielding message.started.
         # This eliminates the race where cancel() arrives between
@@ -353,6 +396,9 @@ class ConversationService:
                         started_at,
                         node_summary=final_node_summary or None,
                         route=final_route,
+                        classification=final_classification,
+                        classification_status=final_classification_status,
+                        classification_error_code=final_classification_error_code,
                     )
                     terminal = True
                     yield {
@@ -378,6 +424,17 @@ class ConversationService:
                     text = event["display_text"]
                     final_node_summary = event.get("node_summary", {})
                     final_route = event.get("route")
+                    raw_cls = event.get("classification")
+                    if raw_cls is not None:
+                        final_classification = (
+                            raw_cls.model_dump()
+                            if hasattr(raw_cls, "model_dump")
+                            else raw_cls
+                        )
+                    final_classification_status = event.get("classification_status")
+                    final_classification_error_code = event.get(
+                        "classification_error_code"
+                    )
 
             # Re-check cancel after graph completes.  When the classifier
             # was cancelled mid-flight the graph finishes with a fallback
@@ -391,6 +448,9 @@ class ConversationService:
                     started_at,
                     node_summary=final_node_summary or None,
                     route=final_route,
+                    classification=final_classification,
+                    classification_status=final_classification_status,
+                    classification_error_code=final_classification_error_code,
                 )
                 terminal = True
                 yield {
@@ -420,6 +480,9 @@ class ConversationService:
                     error_message="回复生成失败，已保留你的消息。",
                     node_summary=final_node_summary or None,
                     route=final_route,
+                    classification=final_classification,
+                    classification_status=final_classification_status,
+                    classification_error_code=final_classification_error_code,
                 )
                 terminal = True
                 yield {
@@ -441,6 +504,9 @@ class ConversationService:
                     started_at,
                     node_summary=final_node_summary or None,
                     route=final_route,
+                    classification=final_classification,
+                    classification_status=final_classification_status,
+                    classification_error_code=final_classification_error_code,
                 )
                 terminal = True
                 yield {
@@ -461,6 +527,9 @@ class ConversationService:
                 error_message=str(exc),
                 node_summary=final_node_summary or None,
                 route=final_route,
+                classification=final_classification,
+                classification_status=final_classification_status,
+                classification_error_code=final_classification_error_code,
             )
             terminal = True
             yield {
@@ -486,6 +555,9 @@ class ConversationService:
                         started_at,
                         node_summary=final_node_summary or None,
                         route=final_route,
+                        classification=final_classification,
+                        classification_status=final_classification_status,
+                        classification_error_code=final_classification_error_code,
                     )
             finally:
                 # Release classifier state BEFORE registry release.

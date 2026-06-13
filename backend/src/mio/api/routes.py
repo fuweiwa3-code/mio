@@ -1,9 +1,9 @@
 import json
 from collections.abc import AsyncIterator
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import StreamingResponse
 
 from mio.api.dependencies import get_conversation_service
@@ -16,9 +16,12 @@ from mio.api.schemas import (
     ConversationResponse,
     MessageCreate,
     MessageListResponse,
+    TraceListResponse,
+    TraceResponse,
 )
 from mio.db.models import CompanionProfile, Conversation
 from mio.services.conversations import ConversationService
+from mio.services.traces import TraceService, sanitize_node_summary
 
 health_router = APIRouter(prefix="/api/health", tags=["health"])
 api_router = APIRouter(prefix="/api/v1")
@@ -26,6 +29,13 @@ ConversationServiceDep = Annotated[
     ConversationService,
     Depends(get_conversation_service),
 ]
+
+
+def get_trace_service(request: Request) -> TraceService:
+    return cast(TraceService, request.app.state.trace_service)
+
+
+TraceServiceDep = Annotated[TraceService, Depends(get_trace_service)]
 
 
 @health_router.get("/live")
@@ -140,3 +150,91 @@ async def cancel_request(
     if not cancelled:
         raise AppError(404, "request_not_active", "生成请求不存在或已经结束。")
     return CancelResponse(request_id=request_id, cancelled=True)
+
+
+# ── Trace query endpoints ───────────────────────────────────────────
+
+
+@api_router.get(
+    "/traces",
+    response_model=TraceListResponse,
+    tags=["traces"],
+)
+async def list_traces(
+    trace_service: TraceServiceDep,
+    conversation_id: UUID | None = None,
+    status_filter: str | None = Query(default=None, alias="status"),
+    limit: int = Query(default=20, ge=1, le=100),
+    cursor: str | None = None,
+) -> TraceListResponse:
+    traces, next_cursor = await trace_service.list_traces(
+        conversation_id=conversation_id,
+        status=status_filter,
+        limit=limit,
+        cursor=cursor,
+    )
+    items = [
+        TraceResponse(
+            id=t.id,
+            conversation_id=t.conversation_id,
+            request_id=t.request_id,
+            status=t.status,
+            provider=t.provider,
+            model=t.model,
+            duration_ms=t.duration_ms,
+            error_stage=t.error_stage,
+            error_code=t.error_code,
+            emotion_label=t.emotion_label,
+            emotion_confidence=t.emotion_confidence,
+            intent_label=t.intent_label,
+            intent_confidence=t.intent_confidence,
+            risk_level=t.risk_level,
+            risk_confidence=t.risk_confidence,
+            classification_status=t.classification_status,
+            classification_error_code=t.classification_error_code,
+            route=t.route,
+            # NULL in DB → 1 for historical traces
+            trace_schema_version=t.trace_schema_version or 1,
+            node_summary=sanitize_node_summary(t.node_summary),
+            created_at=t.created_at,
+            updated_at=t.updated_at,
+        )
+        for t in traces
+    ]
+    return TraceListResponse(items=items, next_cursor=next_cursor)
+
+
+@api_router.get(
+    "/traces/{trace_id}",
+    response_model=TraceResponse,
+    tags=["traces"],
+)
+async def get_trace(
+    trace_id: UUID,
+    trace_service: TraceServiceDep,
+) -> TraceResponse:
+    t = await trace_service.get_trace(trace_id)
+    return TraceResponse(
+        id=t.id,
+        conversation_id=t.conversation_id,
+        request_id=t.request_id,
+        status=t.status,
+        provider=t.provider,
+        model=t.model,
+        duration_ms=t.duration_ms,
+        error_stage=t.error_stage,
+        error_code=t.error_code,
+        emotion_label=t.emotion_label,
+        emotion_confidence=t.emotion_confidence,
+        intent_label=t.intent_label,
+        intent_confidence=t.intent_confidence,
+        risk_level=t.risk_level,
+        risk_confidence=t.risk_confidence,
+        classification_status=t.classification_status,
+        classification_error_code=t.classification_error_code,
+        route=t.route,
+        trace_schema_version=t.trace_schema_version or 1,
+        node_summary=sanitize_node_summary(t.node_summary),
+        created_at=t.created_at,
+        updated_at=t.updated_at,
+    )

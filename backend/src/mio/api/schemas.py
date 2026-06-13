@@ -69,6 +69,43 @@ class CancelResponse(BaseModel):
     cancelled: bool
 
 
+class TraceResponse(BaseModel):
+    """Sanitized AgentTrace response — no sensitive data."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    conversation_id: UUID
+    request_id: UUID
+    status: str
+    provider: str
+    model: str
+    duration_ms: int | None
+    error_stage: str | None
+    error_code: str | None
+    # Classification fields (nullable for historical v1 traces)
+    emotion_label: str | None
+    emotion_confidence: float | None
+    intent_label: str | None
+    intent_confidence: float | None
+    risk_level: str | None
+    risk_confidence: float | None
+    classification_status: str | None
+    classification_error_code: str | None
+    route: str | None
+    # NULL in DB → API always returns 1 for historical traces
+    trace_schema_version: int = Field(ge=1)
+    # Sanitized: only whitelist keys per node
+    node_summary: dict[str, dict[str, object]]
+    created_at: datetime
+    updated_at: datetime
+
+
+class TraceListResponse(BaseModel):
+    items: list[TraceResponse]
+    next_cursor: str | None
+
+
 class SSEPayload(BaseModel):
     request_id: UUID
     message_id: UUID
