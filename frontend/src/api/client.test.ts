@@ -36,4 +36,20 @@ describe("requestJson", () => {
       }),
     );
   });
+
+  it("passes AbortSignal through to fetch", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const controller = new AbortController();
+    await requestJson("/test", { signal: controller.signal });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal);
+  });
 });

@@ -132,3 +132,85 @@ describe("frontend architecture", () => {
     expect(css).toMatch(/--plum:\s*#5b4652/);
     expect(css).toMatch(/--canvas:\s*#f3efed/);
   });
+
+  it("keeps TraceDebugPage free of fetch calls", async () => {
+    const source = await readSource("./features/debug/TraceDebugPage.tsx");
+    expect(source).not.toContain("fetch(");
+  });
+
+  it("keeps debug components free of chat session imports", async () => {
+    const debugFiles = [
+      "./features/debug/TraceDebugPage.tsx",
+      "./features/debug/TraceFilters.tsx",
+      "./features/debug/TraceList.tsx",
+      "./features/debug/TraceDetail.tsx",
+      "./features/debug/TraceNodeTimeline.tsx",
+      "./features/debug/TraceClassification.tsx",
+    ];
+
+    for (const path of debugFiles) {
+      const source = await readSource(path);
+      expect(source, `${path} should not import useChatSession`).not.toContain(
+        "useChatSession",
+      );
+    }
+  });
+
+  it("keeps debug components free of voice-call imports", async () => {
+    const debugFiles = [
+      "./features/debug/TraceDebugPage.tsx",
+      "./features/debug/TraceFilters.tsx",
+      "./features/debug/TraceList.tsx",
+      "./features/debug/TraceDetail.tsx",
+      "./features/debug/TraceNodeTimeline.tsx",
+      "./features/debug/TraceClassification.tsx",
+    ];
+
+    for (const path of debugFiles) {
+      const source = await readSource(path);
+      expect(source, `${path} should not import VoiceCallPage`).not.toContain(
+        "VoiceCallPage",
+      );
+      expect(source, `${path} should not import AvatarStage`).not.toContain(
+        "AvatarStage",
+      );
+    }
+  });
+
+  it("keeps debug components free of animejs", async () => {
+    const debugFiles = [
+      "./features/debug/TraceDebugPage.tsx",
+      "./features/debug/TraceFilters.tsx",
+      "./features/debug/TraceList.tsx",
+      "./features/debug/TraceDetail.tsx",
+      "./features/debug/TraceNodeTimeline.tsx",
+      "./features/debug/TraceClassification.tsx",
+    ];
+
+    for (const path of debugFiles) {
+      const source = await readSource(path);
+      expect(source, `${path} should not import animejs`).not.toContain(
+        'from "animejs"',
+      );
+    }
+  });
+
+  it("keeps TraceDebugPage focused on composition", async () => {
+    const source = await readSource("./features/debug/TraceDebugPage.tsx");
+    const lines = source.trim().split("\n");
+    expect(lines.length).toBeLessThanOrEqual(180);
+  });
+
+  it("uses trace-/debug- prefix for debug CSS classes", async () => {
+    const css = await readSource("./features/debug/debug.css");
+    // All selectors should start with .trace- or .debug- or .sr-
+    const selectors = css.match(/\.[a-z][a-z0-9-]*/g) ?? [];
+    for (const selector of selectors) {
+      expect(
+        selector.startsWith(".trace-") ||
+          selector.startsWith(".debug-") ||
+          selector.startsWith(".sr-"),
+        `CSS selector ${selector} should use trace-/debug-/sr- prefix`,
+      ).toBe(true);
+    }
+  });

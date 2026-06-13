@@ -104,3 +104,57 @@ export interface ChatUiMessage {
   traceId?: UUID;
   errorMessage?: string;
 }
+
+// ── Trace ──────────────────────────────────────────────────────────
+
+export type TraceNodeStatus =
+  | "pending"
+  | "streaming"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "fallback"
+  | "skipped";
+
+export interface TraceNodeSummary {
+  status?: TraceNodeStatus;
+  duration_ms?: number;
+  error_code?: string | null;
+}
+
+export interface TraceResponse {
+  id: UUID;
+  conversation_id: UUID;
+  request_id: UUID;
+  status: string;
+  provider: string;
+  model: string;
+  duration_ms: number | null;
+  error_stage: string | null;
+  error_code: string | null;
+  emotion_label: string | null;
+  emotion_confidence: number | null;
+  intent_label: string | null;
+  intent_confidence: number | null;
+  risk_level: string | null;
+  risk_confidence: number | null;
+  classification_status: string | null;
+  classification_error_code: string | null;
+  route: string | null;
+  trace_schema_version: number;
+  node_summary: Record<string, TraceNodeSummary>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TraceListResponse {
+  items: TraceResponse[];
+  next_cursor: string | null;
+}
+
+export interface TraceListParams {
+  conversation_id?: UUID;
+  status?: string;
+  limit?: number;
+  cursor?: string;
+}
